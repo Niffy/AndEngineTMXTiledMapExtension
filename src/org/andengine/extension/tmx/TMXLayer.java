@@ -21,7 +21,7 @@ import org.andengine.util.color.Color;
 import org.andengine.util.data.base64.Base64;
 import org.andengine.util.data.base64.Base64InputStream;
 import org.andengine.util.exception.AndEngineException;
-import org.andengine.util.exception.MethodNotSupportedException;
+import org.andengine.util.exception.MethodNotYetImplementedException;
 import org.andengine.util.math.MathUtils;
 import org.xml.sax.Attributes;
 
@@ -160,8 +160,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 
 	@Override
 	@Deprecated
-	public void setRotation(final float pRotation) throws MethodNotSupportedException {
-		throw new MethodNotSupportedException();
+	public void setRotation(final float pRotation) throws MethodNotYetImplementedException {
+		throw new MethodNotYetImplementedException();
 	}
 
 	@Override
@@ -241,6 +241,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		}
 	}
 
+	/*
 	private void addTileByGlobalTileID(final int pGlobalTileID, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
 		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
 
@@ -276,7 +277,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		this.submit(); // TODO Doesn't need to be called here, but should rather be called in a "init" step, when parsing the XML is complete.
 
 		if(pGlobalTileID != 0) {
-			/* Notify the ITMXTilePropertiesListener if it exists. */
+			// Notify the ITMXTilePropertiesListener if it exists. 
 			if(pTMXTilePropertyListener != null) {
 				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap.getTMXTileProperties(pGlobalTileID);
 				if(tmxTileProperties != null) {
@@ -287,7 +288,58 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 
 		this.mTilesAdded++;
 	}
+	*/
+	
+	
+	private void addTileByGlobalTileID(final int pGlobalTileID,
+			final ITMXTilePropertiesListener pTMXTilePropertyListener) {
 
+		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
+		final int tilesHorizontal = this.mTileColumns;
+		final int column = this.mTilesAdded % tilesHorizontal;
+		final int row = this.mTilesAdded / tilesHorizontal;
+		final TMXTile[][] tmxTiles = this.mTMXTiles;
+		final ITextureRegion tmxTileTextureRegion;
+		final int tileHeight = this.mTMXTiledMap.getTileHeight();
+		final int tileWidth = this.mTMXTiledMap.getTileWidth();
+
+		if (pGlobalTileID != 0) {
+			tmxTileTextureRegion = tmxTiledMap.getTextureRegionFromGlobalTileID(pGlobalTileID);
+			if (this.mTexture == null) {
+				this.mTexture = tmxTileTextureRegion.getTexture();
+				super.initBlendFunction(this.mTexture);
+			} else {
+				if (this.mTexture != tmxTileTextureRegion.getTexture()) {
+					throw new AndEngineException(
+							"All TMXTiles in a TMXLayer need to be in the same TMXTileSet.");
+				}
+			}
+
+			final TMXTile tmxTile = new TMXTile(pGlobalTileID, column, row,
+					tileWidth, tileHeight, tmxTileTextureRegion);
+			tmxTiles[row][column] = tmxTile;
+			this.setIndex(this.getSpriteBatchIndex(column, row));
+			this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(),
+					tmxTile.getTileY(), tileWidth, tileHeight,
+					Color.WHITE_PACKED);
+			this.submit(); // TODO Doesn't need to be called here, but should
+							// rather be called in a "init" step, when parsing
+							// the XML is complete.
+
+			//Notify the ITMXTilePropertiesListener if it exists. 
+			if (pTMXTilePropertyListener != null) {
+				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap
+						.getTMXTileProperties(pGlobalTileID);
+				if (tmxTileProperties != null) {
+					pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(
+							tmxTiledMap, this, tmxTile, tmxTileProperties);
+				}
+			}
+		}
+		this.mTilesAdded++;
+	}
+
+	
 	private int getSpriteBatchIndex(final int pColumn, final int pRow) {
 		return pRow * this.mTileColumns + pColumn;
 	}
