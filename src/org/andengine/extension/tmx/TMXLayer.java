@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 
-import org.andengine.collision.RectangularShapeCollisionChecker;
 import org.andengine.engine.camera.Camera;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.sprite.batch.SpriteBatch;
@@ -15,12 +14,14 @@ import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.opengl.texture.ITexture;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.opengl.util.GLState;
+import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.util.SAXUtils;
 import org.andengine.util.StreamUtils;
+import org.andengine.util.algorithm.collision.RectangularShapeCollisionChecker;
+import org.andengine.util.base64.Base64;
+import org.andengine.util.base64.Base64InputStream;
 import org.andengine.util.color.Color;
-import org.andengine.util.data.base64.Base64;
-import org.andengine.util.data.base64.Base64InputStream;
-import org.andengine.util.exception.AndEngineException;
+import org.andengine.util.exception.AndEngineRuntimeException;
 import org.andengine.util.exception.MethodNotSupportedException;
 import org.andengine.util.math.MathUtils;
 import org.xml.sax.Attributes;
@@ -64,8 +65,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	// Constructors
 	// ===========================================================
 
-	public TMXLayer(final TMXTiledMap pTMXTiledMap, final Attributes pAttributes) {
-		super(null, SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_WIDTH) * SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_HEIGHT));
+	public TMXLayer(final TMXTiledMap pTMXTiledMap, final Attributes pAttributes, final VertexBufferObjectManager pVertexBufferObjectManager) {
+		super(null, SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_WIDTH) * SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_HEIGHT), pVertexBufferObjectManager);
 
 		this.mTMXTiledMap = pTMXTiledMap;
 		this.mName = pAttributes.getValue("", TMXConstants.TAG_LAYER_ATTRIBUTE_NAME);
@@ -265,14 +266,14 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			super.initBlendFunction(this.mTexture);
 		} else {
 			if(this.mTexture != tmxTileTextureRegion.getTexture()) {
-				throw new AndEngineException("All TMXTiles in a TMXLayer need to be in the same TMXTileSet.");
+				throw new AndEngineRuntimeException("All TMXTiles in a TMXLayer need to be in the same TMXTileSet.");
 			}
 		}
 		final TMXTile tmxTile = new TMXTile(pGlobalTileID, column, row, tileWidth, tileHeight, tmxTileTextureRegion);
 		tmxTiles[row][column] = tmxTile;
 
 		this.setIndex(this.getSpriteBatchIndex(column, row));
-		this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(), tmxTile.getTileY(), tileWidth, tileHeight, Color.WHITE_PACKED);
+		this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(), tmxTile.getTileY(), tileWidth, tileHeight, Color.WHITE_ABGR_PACKED_FLOAT);
 		this.submit(); // TODO Doesn't need to be called here, but should rather be called in a "init" step, when parsing the XML is complete.
 
 		if(pGlobalTileID != 0) {
