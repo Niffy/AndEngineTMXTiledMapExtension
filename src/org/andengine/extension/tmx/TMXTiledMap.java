@@ -3,10 +3,12 @@ package org.andengine.extension.tmx;
 import java.util.ArrayList;
 
 import org.andengine.extension.tmx.util.constants.TMXConstants;
+import org.andengine.extension.tmx.util.constants.TMXIsometricConstants;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.util.SAXUtils;
 import org.xml.sax.Attributes;
 
+import android.R.integer;
 import android.util.SparseArray;
 
 /**
@@ -37,7 +39,14 @@ public class TMXTiledMap implements TMXConstants {
 
 	private final SparseArray<ITextureRegion> mGlobalTileIDToTextureRegionCache = new SparseArray<ITextureRegion>();
 	private final SparseArray<TMXProperties<TMXTileProperty>> mGlobalTileIDToTMXTilePropertiesCache = new SparseArray<TMXProperties<TMXTileProperty>>();
-
+	/**
+	 * {@link integer} Array cache of offsets and tileset size for global tile ids. 
+	 * <br><i>element[0]</i> X offset 
+	 * <br><i>element[1]</i> Y offset
+	 * <br><i>element[2]</i> Tile size width 
+	 * <br><i>element[3]</i> Tile size height
+	 */
+	private final SparseArray<int[]> mGlobalTileIDMultiCache = new SparseArray<int[]>();
 	private final TMXProperties<TMXTiledMapProperty> mTMXTiledMapProperties = new TMXProperties<TMXTiledMapProperty>();
 
 	// ===========================================================
@@ -46,9 +55,14 @@ public class TMXTiledMap implements TMXConstants {
 
 	TMXTiledMap(final Attributes pAttributes) {
 		this.mOrientation = pAttributes.getValue("", TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION);
-		if(!this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)) {
+		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
+			//We support this!
+		}else if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			//We support this!
+		}else{
 			throw new IllegalArgumentException(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION + ": '" + this.mOrientation + "' is not supported.");
 		}
+
 		this.mTileColumns = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_MAP_ATTRIBUTE_WIDTH);
 		this.mTilesRows = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_MAP_ATTRIBUTE_HEIGHT);
 		this.mTileWidth = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_MAP_ATTRIBUTE_TILEWIDTH);
@@ -62,6 +76,7 @@ public class TMXTiledMap implements TMXConstants {
 	public final String getOrientation() {
 		return this.mOrientation;
 	}
+	
 	/**
 	 * @deprecated Instead use {@link TMXTiledMap#getTileColumns()} * {@link TMXTiledMap#getTileWidth()}.
 	 * @return
@@ -131,6 +146,24 @@ public class TMXTiledMap implements TMXConstants {
 	public TMXProperties<TMXTiledMapProperty> getTMXTiledMapProperties() {
 		return this.mTMXTiledMapProperties;
 	}
+	
+	/**
+	 * For all layers set the desired render method as defined in {@link TMXIsometricConstants}
+	 * <br><b>Available draw methods:</b>
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL}
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_SLIM}
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_PADDING}
+	 * <br> <b>Note:</b> If the draw method is not know or supported then 
+	 *  {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL} is used.
+	 * @param pDrawMethod {@link integer} of the method to use.
+	 */
+	public void setIsometricDrawMethod(final int pDrawMethod){
+		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			for (TMXLayer layer : this.mTMXLayers) {
+				layer.setIsometricDrawMethod(pDrawMethod);
+			}
+		}
+	}
 
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
@@ -167,7 +200,7 @@ public class TMXTiledMap implements TMXConstants {
 			return cachedTextureRegion;
 		} else {
 			final ArrayList<TMXTileSet> tmxTileSets = this.mTMXTileSets;
-
+			
 			for(int i = tmxTileSets.size() - 1; i >= 0; i--) {
 				final TMXTileSet tmxTileSet = tmxTileSets.get(i);
 				if(pGlobalTileID >= tmxTileSet.getFirstGlobalTileID()) {
@@ -180,7 +213,44 @@ public class TMXTiledMap implements TMXConstants {
 			throw new IllegalArgumentException("No TextureRegion found for pGlobalTileID=" + pGlobalTileID);
 		}
 	}
-
+	
+	/**
+	 * Get the offset and tile size of the tile set for a given global tile id. <br>
+	 * TODO  This is perhaps not the most efficient way of getting the offset and tile set size,
+	 * but it works.  In future perhaps store the range of global tile IDs for 
+	 * a tile set and reduce the constant lookup.
+	 * 
+	 * @param pGlobalTileID {@link integer} of the global tile id
+	 * @return {@link integer} array of offset and tile size.
+	 * <br><i>element[0]</i> is the X offset. 
+	 * <br><i>element[1]</i> is the Y offset.
+	 * <br><i>element[2]</i> is the tile width.
+	 * <br><i>element[3]</i> is the tile height.
+	 */
+	public int[] checkTileSetOffsetAndSize(final int pGlobalTileID){
+		//implemented by Paul Robinson
+		final SparseArray<int[]> globalTileIDMultiCache = this.mGlobalTileIDMultiCache;
+		final int[] offset_and_size = globalTileIDMultiCache.get(pGlobalTileID);
+		
+		if(offset_and_size != null){
+			/* Got a cached offset and size for this tile */
+			return offset_and_size;
+		}else{
+			/* No cached offset, best go and find it! */
+			final ArrayList<TMXTileSet> tmxTileSets = this.mTMXTileSets;
+			for(int i = tmxTileSets.size() - 1; i >= 0; i--) {
+				final TMXTileSet tmxTileSet = tmxTileSets.get(i);
+				if(pGlobalTileID >= tmxTileSet.getFirstGlobalTileID()) {
+					/* This tile belongs to this set */
+					int[] object = {tmxTileSet.getOffsetX(), tmxTileSet.getOffsetY(), tmxTileSet.getTileWidth(), tmxTileSet.getTileHeight() };
+					globalTileIDMultiCache.put(pGlobalTileID, object);
+					return object;
+				}
+			}
+			throw new IllegalArgumentException(String.format("No Tileset Offset and/or Tileset Size) found for pGlobalTileID: %d", pGlobalTileID));
+		}
+	}
+	
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================

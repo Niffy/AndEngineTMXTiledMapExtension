@@ -46,6 +46,8 @@ public class TSXParser extends DefaultHandler implements TMXConstants {
 	@SuppressWarnings("unused")
 	private boolean mInProperty;
 	private final int mFirstGlobalTileID;
+	@SuppressWarnings("unused")
+	private boolean mInTileOffset;
 
 	// ===========================================================
 	// Constructors
@@ -75,6 +77,9 @@ public class TSXParser extends DefaultHandler implements TMXConstants {
 		if(pLocalName.equals(TMXConstants.TAG_TILESET)){
 			this.mInTileset = true;
 			this.mTMXTileSet = new TMXTileSet(this.mFirstGlobalTileID, pAttributes, this.mTextureOptions);
+		} else if (pLocalName.equals(TMXConstants.TAG_OFFSET)){
+			this.mInTileOffset = true;
+			this.mTMXTileSet.addTileOffset(pAttributes);
 		} else if(pLocalName.equals(TMXConstants.TAG_IMAGE)){
 			this.mInImage = true;
 			this.mTMXTileSet.setImageSource(this.mAssetManager, this.mTextureManager, pAttributes);
@@ -95,6 +100,8 @@ public class TSXParser extends DefaultHandler implements TMXConstants {
 	public void endElement(final String pUri, final String pLocalName, final String pQualifiedName) throws SAXException {
 		if(pLocalName.equals(TMXConstants.TAG_TILESET)){
 			this.mInTileset = false;
+		} else if (pLocalName.equals(TMXConstants.TAG_OFFSET)){
+			this.mInTileOffset = false;
 		} else if(pLocalName.equals(TMXConstants.TAG_IMAGE)){
 			this.mInImage = false;
 		} else if(pLocalName.equals(TMXConstants.TAG_TILE)) {

@@ -11,6 +11,7 @@ import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.sprite.batch.SpriteBatch;
 import org.andengine.extension.tmx.TMXLoader.ITMXTilePropertiesListener;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
+import org.andengine.extension.tmx.util.constants.TMXIsometricConstants;
 import org.andengine.opengl.texture.ITexture;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.opengl.util.GLState;
@@ -26,7 +27,9 @@ import org.andengine.util.exception.MethodNotSupportedException;
 import org.andengine.util.math.MathUtils;
 import org.xml.sax.Attributes;
 
+import android.R.integer;
 import android.opengl.GLES20;
+import android.util.Log;
 
 /**
  * (c) 2010 Nicolas Gramlich
@@ -36,6 +39,9 @@ import android.opengl.GLES20;
  * @since 20:27:31 - 20.07.2010
  */
 public class TMXLayer extends SpriteBatch implements TMXConstants {
+
+	//TODO Better culling of isometric tiles
+
 	// ===========================================================
 	// Constants
 	// ===========================================================
@@ -45,7 +51,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	// ===========================================================
 
 	private final TMXTiledMap mTMXTiledMap;
-
+	private final String TAG = "TMXLayer";
 	private final String mName;
 	private final int mTileColumns;
 	private final int mTileRows;
@@ -60,6 +66,35 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 
 	private final int mWidth;
 	private final int mHeight;
+
+	/**
+	 * Half the width of the isometric tile
+	 */
+	private int mIsoHalfTileWidth = 0;
+	/**
+	 * Half the height of the isometric tile
+	 */
+	private int mIsoHalfTileHeight = 0;
+	/**
+	 * Count how many tiles on the row axis has been added.
+	 */
+	private int mAddedTilesOnRow = 0;
+	/**
+	 * Count how many tile on the columns axis has been added. 
+	 */
+	private int mAddedRows = 0;
+	/**
+	 * Original X location for the map, helps set an origin point to lay out tiles
+	 */
+	private int mIsoXOrigin = 0;
+	/**
+	 * What draw method to use for Isometric layers.<br>
+	 * Default draw method is: {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL}
+	 * <br> Available:
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_PADDING}
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_SLIM}
+	 */
+	private int DRAW_METHOD_ISOMETRIC = 1;
 
 	// ===========================================================
 	// Constructors
@@ -87,6 +122,34 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 
 		this.setVisible(SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_VISIBLE, TMXConstants.TAG_LAYER_ATTRIBUTE_VISIBLE_VALUE_DEFAULT) == 1);
 		this.setAlpha(SAXUtils.getFloatAttribute(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_OPACITY, TMXConstants.TAG_LAYER_ATTRIBUTE_OPACITY_VALUE_DEFAULT));
+
+		if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			//Paul Robinson
+			//Calculate the half of the tile height and width, saves doing it later
+			this.mIsoHalfTileHeight = this.mTMXTiledMap.getTileHeight() / 2;
+			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
+			//Set up the initial X and Y locations, without any offsets
+			//TODO this is not the best way, look at using rows(map height) * tileWidth / 2. Currently the bottom left tile is not at zero on the x axis
+			this.mIsoXOrigin = (this.mTMXTiledMap.getTileColumns() * this.mTMXTiledMap.getTileWidth()) / 2;
+			/*
+			 * We could implement the following to get the the very bottom left 
+			 * tile to zero, but screws up the getTileAt method and I cannot be 
+			 * bothered to take account for the origin. 
+			 * So if you want to centre the camera initially then have fun...
+			 */
+			/*
+			//this.mIsoXOrigin -= this.mIsoHalfTileWidth;
+			if(this.mTMXTiledMap.getTileColumns() != this.getTileRows()){
+				// IF the map is not even, where the number of rows and columns are 
+				// not the same, then work out the the first tile x location.
+				// This is so the last bottom left tile does not get drawn too far to the right.
+				// In effect that last left bottom tile (column 0, row n) left most tip 
+				//is at Y: 0 
+
+				//this.mIsoXOrigin = (this.mTMXTiledMap.getTileRows() / 2) * this.mTMXTiledMap.getTileWidth();
+			}
+			 */
+		}
 	}
 
 	// ===========================================================
@@ -120,13 +183,69 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public TMXTile getTMXTile(final int pTileColumn, final int pTileRow) throws ArrayIndexOutOfBoundsException {
 		return this.mTMXTiles[pTileRow][pTileColumn];
 	}
+	
+	/**
+	 * Get the origin of an isometric map starting point.
+	 * @return {@link integer} of the drawing origin point of the whole map. 
+	 * (Where the first tile is drawn)
+	 */
+	public int getOrigin(){
+		return this.mIsoXOrigin;
+	}
 
 	/**
-	 * @param pX in SceneCoordinates.
-	 * @param pY in SceneCoordinates.
-	 * @return the {@link TMXTile} located at <code>pX/pY</code>.
+	 * For this layer set the desired render method as defined in {@link TMXIsometricConstants}
+	 * <br><b>Available draw methods:</b>
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL}
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_SLIM}
+	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_PADDING}
+	 * @param pMethod {@link integer} of the method to use.
+	 */
+	public void setIsometricDrawMethod(final int pMethod){
+		this.DRAW_METHOD_ISOMETRIC = pMethod;
+	}
+	
+	/**
+	 * Get a TMXTile at a given location.
+	 * <br> This takes into account the map orientation. 
+	 * This currently supports <b>ORTHOGONAL</b> and <b>ISOMETRIC</b>,
+	 * Check the Javadoc for each related method if there are any instructions.
+	 * <br> <b>Note</b> If the map orientation is not supported, an error is logged
+	 * and the normal orthogonal calculations used.
+	 * <br> <b>Call: </b>
+	 * <br> {@link #getTMXTileAtOrthogonal(float, float)}
+	 * <br> {@link #getTMXTIleAtIsometric(float, float)}
+	 * <br> <b>Isometric Note:</b> You can also call {@link #getTMXTIleAtIsometricAlternative(float[])}
+	 * if you feel the standard implementation isn't working correctly. 
+	 * 
+	 * @param pX {@link Float} x touch location.
+	 * @param pY {@link Float} y touch location.
+	 * @return {@link TMXTile} of found location <b>OR</b> returns <code>null</code> 
+	 * if not found, or the location is out side the bounds of the tmx file.
 	 */
 	public TMXTile getTMXTileAt(final float pX, final float pY) {
+		//Modification by Paul Robinson
+		if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
+			return this.getTMXTileAtOrthogonal(pX, pY);
+		}else if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			return this.getTMXTileAtIsometric(pX, pY);
+		}else{
+			Log.w(TAG, String.format("Orientation not supported: '%s'. " +
+					"Will use normal Orthogonal getTMXTileAt method", this.mTMXTiledMap.getOrientation()));	
+			return this.getTMXTileAtOrthogonal(pX, pY);
+		}
+	}
+
+	/**
+	 * Standard method to calculating the selected tile at a given location, on a Orthogonal map<br>
+	 * <b>Note</b> The contents of this method was originally in {@link #getTMXTileAt(float, float)}
+	 * 
+	 * @param pX {@link Float} x touch location.
+	 * @param pY {@link Float} y touch location.
+	 * @return {@link TMXTile} of found location <b>OR</b> returns <code>null</code> 
+	 * if not found, or the location is out side the bounds of the tmx file.
+	 */
+	private TMXTile getTMXTileAtOrthogonal(final float pX, final float pY){
 		final float[] localCoords = this.convertSceneToLocalCoordinates(pX, pY);
 		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
 
@@ -140,6 +259,81 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		}
 
 		return this.mTMXTiles[tileRow][tileColumn];
+	}
+
+	/**
+	 * Standard method to calculating the selected tile at a given location on an isometric map <br>
+	 * <b>Usage</b> <br>
+	 * From the touch event, execute <code>convertLocalToSceneCoordinates</code> 
+	 * on the current scene and pass to this method the returned {@link Float} array. 
+	 * <br> <b>Accessed via </b> The only way to access this method is through 
+	 * {@link #getTMXTileAt(float, float)}.
+	 * <br><b>Why</b> <br>
+	 * This is method is a mix of  {@link #getTMXTileAtOrthogonal(float, float)}
+	 * and {@link #getIsometricTileAtAlternative(float[])}.  This method calls
+	 * <code>convertSceneToLocalCoordinates</code>
+	 * 
+	 * @param pX {@link Float} x touch location.
+	 * @param pY {@link Float} y touch location.
+	 * @return {@link TMXTile} of found location <b>OR</b> returns <code>null</code> 
+	 * if not found, or the location is out side the bounds of the tmx file. 
+	 */
+	private TMXTile getTMXTileAtIsometric(final float pX, final float pY){
+		/*
+		 * Implemented by Paul Robinson
+		 * Referenced work Christian Knudsen of Laserbrain Studios - "The basics of isometric programming" 
+		 * http://laserbrainstudios.com/2010/08/the-basics-of-isometric-programming/
+		 */
+		final float[] localCoords = this.convertSceneToLocalCoordinates(pX, pY);
+		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
+
+		float screenX = localCoords[SpriteBatch.VERTEX_INDEX_X] -  this.mTMXTiledMap.getTileHeight() - (this.mTMXTiledMap.getTileHeight() * this.mTMXTiledMap.getTileColumns());
+		float tileColumn = (localCoords[SpriteBatch.VERTEX_INDEX_Y] / tmxTiledMap.getTileHeight()) + (screenX / tmxTiledMap.getTileWidth());
+		float tileRow = (localCoords[SpriteBatch.VERTEX_INDEX_Y] / tmxTiledMap.getTileHeight()) - (screenX / tmxTiledMap.getTileWidth());
+		if(tileColumn < 0 || tileColumn > this.mTileColumns) {
+			return null;
+		}
+		if(tileRow < 0 || tileRow > this.mTileRows ) {
+			return null;
+		}
+		return this.mTMXTiles[(int) tileRow][(int) tileColumn];
+	}
+
+	/**
+	 * Alternative method to calculating the selected tile at a given location on an isometric map <br> <br>
+	 * <b>Usage</b> <br>
+	 * From the touch event, execute <code>convertLocalToSceneCoordinates</code> 
+	 * on the current scene and pass to this method the returned {@link Float} array
+	 * <br><b>Why</b> <br>
+	 * {@link #getTMXTIleAtIsometric(float, float)} is very similar to this method,
+	 * but calls <code>convertSceneToLocalCoordinates</code> first.
+	 * 
+	 * @param pTouch {@link Float} array of touch result from  
+	 * <code>convertLocalToSceneCoordinates</code> <br> 
+	 * <i>element [0]</i> is the X location <br>
+	 * <i>element [1]</i> is the Y location 
+	 * @return {@link TMXTile} of found location <b>OR</b> returns <code>null</code> 
+	 * if not found, or the location is out side the bounds of the tmx file.
+	 */
+	public TMXTile getTMXTileAtIsometricAlternative(final float[] pTouch){
+		/*
+		 * Implemented by Paul Robinson
+		 * Referenced work Christian Knudsen of Laserbrain Studios - "The basics of isometric programming" 
+		 * http://laserbrainstudios.com/2010/08/the-basics-of-isometric-programming/
+		 */
+		float pX = pTouch[0];
+		float pY = pTouch[1];
+		float screenX = pX - this.mTMXTiledMap.getTileHeight() - (this.mTMXTiledMap.getTileHeight() * this.mTMXTiledMap.getTileColumns());
+		float tileColumn = (pY / this.mTMXTiledMap.getTileHeight()) + (screenX / this.mTMXTiledMap.getTileWidth());
+		float tileRow =  (pY / this.mTMXTiledMap.getTileHeight()) - (screenX / this.mTMXTiledMap.getTileWidth());
+
+		if(tileColumn < 0 || tileColumn > this.mTileColumns) {
+			return null;
+		}
+		if(tileRow < 0 || tileRow > this.mTileRows) {
+			return null;
+		}
+		return this.mTMXTiles[(int) tileRow][(int) tileColumn];
 	}
 
 	public void addTMXLayerProperty(final TMXLayerProperty pTMXLayerProperty) {
@@ -170,8 +364,304 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		/* Nothing. */
 	}
 
+	/**
+	 * Modified to take in account the map orientation.
+	 * <br> If orientation is not supported then a warning will be thrown to the
+	 * log and will call {@link #drawOrthogonal(GLState, Camera)}
+	 * 
+	 */
 	@Override
 	protected void draw(final GLState pGLState, final Camera pCamera) {
+		//Modified by Paul Robinson
+		if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
+			this.drawOrthogonal(pGLState, pCamera);
+		}else if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			this.drawIsometric(pGLState, pCamera);
+		}else{
+			Log.w(TAG, String.format("Orientation not supported: '%s'. " +
+					"Will use normal Orthogonal draw method", this.mTMXTiledMap.getOrientation()));	
+			this.drawOrthogonal(pGLState, pCamera);
+		}
+	}
+
+	// ===========================================================
+	// Methods
+	// ===========================================================
+	
+	void initializeTMXTileFromXML(final Attributes pAttributes, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+		this.addTileByGlobalTileID(SAXUtils.getIntAttributeOrThrow(pAttributes,TMXConstants.TAG_TILE_ATTRIBUTE_GID), pTMXTilePropertyListener);
+	}
+
+	void initializeTMXTilesFromDataString(final String pDataString, final String pDataEncoding, final String pDataCompression, final ITMXTilePropertiesListener pTMXTilePropertyListener) throws IOException, IllegalArgumentException {
+		DataInputStream dataIn = null;
+		try{
+			InputStream in = new ByteArrayInputStream(pDataString.getBytes("UTF-8"));
+
+			/* Wrap decoding Streams if necessary. */
+			if(pDataEncoding != null && pDataEncoding.equals(TMXConstants.TAG_DATA_ATTRIBUTE_ENCODING_VALUE_BASE64)) {
+				in = new Base64InputStream(in, Base64.DEFAULT);
+			}
+			if(pDataCompression != null){
+				if(pDataCompression.equals(TMXConstants.TAG_DATA_ATTRIBUTE_COMPRESSION_VALUE_GZIP)) {
+					in = new GZIPInputStream(in);
+				} else {
+					throw new IllegalArgumentException("Supplied compression '" + pDataCompression + "' is not supported yet.");
+				}
+			}
+			dataIn = new DataInputStream(in);
+
+			while(this.mTilesAdded < this.mGlobalTileIDsExpected) {
+				final int globalTileID = this.readGlobalTileID(dataIn);
+				this.addTileByGlobalTileID(globalTileID,pTMXTilePropertyListener);
+			}
+		} finally {
+			StreamUtils.close(dataIn);
+		}
+	}
+
+	/**
+	 * Add a tile to an orthogonal or isometric map. <br>
+	 * <br><b>Note </b> 
+	 * <br><i>{@link #addTileByGlobalTileIDOrthogonal(int, ITMXTilePropertiesListener)}</i>
+	 * does not implement offsets.
+	 * <br><i>{@link #addTileByGlobalTileIDIsometric(int, ITMXTilePropertiesListener)}</i>
+	 * Does implement offsets so watch out for tile displacements (tiles in the incorrect position)
+	 * <br>
+	 * <br>
+	 * For more information about Isometric tile maps see 
+	 * {@link #addTileByGlobalTileIDIsometric(int, int, ITMXTilePropertiesListener)}
+	 * <br>
+	 * If the map orientation is not supported then {@link #addTileByGlobalTileIDOrthogonal(int, int, ITMXTilePropertiesListener)}
+	 * is used instead, but a warning will be thrown to the log.
+	 * 
+	 * @param pGlobalTileID {@link integer} of the global tile id
+	 * @param pTMXTilePropertyListener {@link ITMXTilePropertiesListener} 
+	 */
+	private void addTileByGlobalTileID(final int pGlobalTileID, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+		if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
+			this.addTileByGlobalTileIDOrthogonal(pGlobalTileID, pTMXTilePropertyListener);
+		}else if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			this.addTileByGlobalTileIDIsometric(pGlobalTileID, pTMXTilePropertyListener);
+		}else{
+			Log.w(TAG, String.format("Orientation not supported: '%s'. " +
+					"Will use original addTileByGlobalTileIDOriginal method ", this.mTMXTiledMap.getOrientation()));
+			this.addTileByGlobalTileIDOrthogonal(pGlobalTileID, pTMXTilePropertyListener);
+		}
+	}
+
+	/**
+	 * Add a tile to an orthogonal map. <br>
+	 * A slightly modified version of the original implementation in that it can
+	 * now have transparent tiles.  <br>
+	 * <b>Note </b> This does not implement any offsets!.
+	 *  
+	 * @param pGlobalTileID
+	 * @param pTMXTilePropertyListener
+	 */
+	private void addTileByGlobalTileIDOrthogonal(final int pGlobalTileID, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
+
+		final int tilesHorizontal = this.mTileColumns;
+
+		final int column = this.mTilesAdded % tilesHorizontal;
+		final int row = this.mTilesAdded / tilesHorizontal;
+
+		final TMXTile[][] tmxTiles = this.mTMXTiles;
+
+		final ITextureRegion tmxTileTextureRegion;
+		if(pGlobalTileID == 0) {
+			tmxTileTextureRegion = null;
+		} else {
+			tmxTileTextureRegion = tmxTiledMap.getTextureRegionFromGlobalTileID(pGlobalTileID);
+		}
+		final int tileHeight = this.mTMXTiledMap.getTileHeight();
+		final int tileWidth = this.mTMXTiledMap.getTileWidth();
+
+		if (tmxTileTextureRegion != null) {
+			// Unless this is a transparent tile, setup the texture
+			if (this.mTexture == null) {
+				this.mTexture = tmxTileTextureRegion.getTexture();
+				super.initBlendFunction(this.mTexture);
+			} else {
+				if (this.mTexture != tmxTileTextureRegion.getTexture()) {
+					throw new AndEngineRuntimeException("All TMXTiles in a TMXLayer ("+ mName + ") need to be in the same TMXTileSet.");
+				}
+			}
+		}
+
+		final TMXTile tmxTile = new TMXTile(this.mTMXTiledMap.getOrientation(), pGlobalTileID, this.mTilesAdded, column, row, tileWidth, tileHeight, tmxTileTextureRegion);
+		tmxTiles[row][column] = tmxTile;
+
+		if(pGlobalTileID != 0) {
+			this.setIndex(this.getSpriteBatchIndex(column, row));
+			this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(), tmxTile.getTileY(), tileWidth, tileHeight, Color.WHITE_ABGR_PACKED_FLOAT);
+			this.submit(); // TODO Doesn't need to be called here, but should rather be called in a "init" step, when parsing the XML is complete.
+
+			// Notify the ITMXTilePropertiesListener if it exists. 
+			if(pTMXTilePropertyListener != null) {
+				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap.getTMXTileProperties(pGlobalTileID);
+				if(tmxTileProperties != null) {
+					pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
+					//Log.i(TAG, "tmxTileProperties created, size " + tmxTileProperties.size());
+				}
+			}
+		}
+
+		this.mTilesAdded++;
+	}
+
+	/**
+	 * Add a tile to an isometric map. <br> <br>
+	 * 
+	 * This can work with maps that use a global tile id of 0 (ie transparent) <br>
+	 * Derived from the original code in {@link #addTileByGlobalTileIDOrthogonal(int, int, ITMXTilePropertiesListener)}
+	 * <br><br>
+	 * <b>NOTE </b>Tileset offsets are implemented! 
+	 * <i>Watch out for tile displacements when using offsets!</i>
+	 * <br><b>NOTE </b> X is the row on the left hand side.  Y is the columns on the right.
+	 * <br><b>NOTE</b> when using X offsets in Tiled, the X offset should be a negative number!
+	 * <br><br>
+	 * Tiled renders and stores tile positions in the TMX file a certain way.  
+	 * The tiles are drawn in rows going left to right, top to bottom. 
+	 * In addition, when tiles are larger than the tile grid of the map, 
+	 * they are aligned to the bottom-left corner of their cell and will stick 
+	 * out to the top and to the right. This is where the offset comes into play
+	 * for a tileset. <i>source: somewhere at the tiled github site</i>
+	 * <br> <br>
+	 * This also determines the draw position (with offsets applied) for the 
+	 * {@link SpriteBatch} along with the centre of the tile. This makes life
+	 * a bit easier for Paul Robinson! <br> 
+	 * 
+	 * @param pGlobalTileID {@link integer} of the global tile id
+	 * @param pTMXTilePropertyListener {@link ITMXTilePropertiesListener} 
+	 */
+	private void addTileByGlobalTileIDIsometric(final int pGlobalTileID, final ITMXTilePropertiesListener pTMXTilePropertyListener){
+		/*
+		 * Implemented by - Paul Robinson
+		 * Referenced work - athanazio - "Working with Isometric Maps"
+		 * http://www.athanazio.com/2008/02/21/working-with-isometric-maps/
+		 * http://www.athanazio.com/wp-content/uploads/2008/02/isomapjava.txt
+		 */
+		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
+		final int tilesHorizontal = this.mTileColumns; 
+		//Tile height and width of the map not the tileset!
+		final int tileHeight = this.mTMXTiledMap.getTileHeight();
+		final int tileWidth = this.mTMXTiledMap.getTileWidth();
+		final int column = this.mTilesAdded % tilesHorizontal;
+		final int row = this.mTilesAdded / tilesHorizontal;
+		final TMXTile[][] tmxTiles = this.mTMXTiles;
+		final ITextureRegion tmxTileTextureRegion;
+
+		if(pGlobalTileID == 0) {
+			tmxTileTextureRegion = null;
+		} else {
+			tmxTileTextureRegion = tmxTiledMap.getTextureRegionFromGlobalTileID(pGlobalTileID);
+		}
+
+		if (tmxTileTextureRegion != null) {
+			// Unless this is a transparent tile, setup the texture
+			if (this.mTexture == null) {
+				this.mTexture = tmxTileTextureRegion.getTexture();
+				super.initBlendFunction(this.mTexture);
+			} else {
+				if (this.mTexture != tmxTileTextureRegion.getTexture()) {
+					throw new AndEngineRuntimeException("All TMXTiles in a TMXLayer ("+ mName + ") need to be in the same TMXTileSet.");
+				}
+			}
+		}		
+		final TMXTile tmxTile = new TMXTile(this.mTMXTiledMap.getOrientation(), pGlobalTileID, this.mTilesAdded, column, row, tileWidth, tileHeight, tmxTileTextureRegion);
+		//Get the offset for the tileset and the tileset size
+		/*
+		 * element[0] is the X offset.
+		 * element[1] is the Y offset.
+		 * element[2] is the tile width.
+		 * element[3] is the tile height.
+		 */
+		int[] offset_tilesize = {0,0,tileWidth,tileHeight};
+		if(pGlobalTileID == 0){
+			//tile is transparent so there is no offset, and use default map tile size
+		}else{
+			offset_tilesize = this.mTMXTiledMap.checkTileSetOffsetAndSize(pGlobalTileID);
+		}
+
+		/*
+		 * Work out where the "perfect" isometric tile should go.
+		 * Perfect meaning a tile from a tileset of the correct height and 
+		 * width matching the map tile height and width.
+		 */
+		int xRealIsoPos = this.mIsoXOrigin + (this.mAddedTilesOnRow * this.mIsoHalfTileWidth); 
+		xRealIsoPos = xRealIsoPos - (this.mAddedRows * this.mIsoHalfTileWidth);
+		int yRealIsoPos = (this.mAddedTilesOnRow * this.mIsoHalfTileHeight);
+		yRealIsoPos = yRealIsoPos + (this.mAddedRows * this.mIsoHalfTileHeight);
+		int xOffsetPos = xRealIsoPos - Math.abs(offset_tilesize[0]);
+		int yOffsetPos = yRealIsoPos - ((offset_tilesize[3] - tileHeight) - offset_tilesize[1]);
+
+		tmxTile.setTileXIso(xOffsetPos);
+		tmxTile.setTileYIso(yOffsetPos);
+		int xCentre = xRealIsoPos + this.mIsoHalfTileWidth;
+		int yCentre = yRealIsoPos + this.mIsoHalfTileHeight;
+		tmxTile.setTileXIsoCentre(xCentre);
+		tmxTile.setTileYIsoCentre(yCentre);	
+		tmxTiles[row][column] = tmxTile;
+
+		this.mAddedTilesOnRow++;
+
+		if(this.mAddedTilesOnRow == this.mTMXTiledMap.getTileColumns()){
+			//Reset the tiles added to a row
+			this.mAddedTilesOnRow = 0;
+			//Increase the numbers of rows added
+			this.mAddedRows++;
+		}
+
+		if(pGlobalTileID != 0) {
+			this.setIndex(this.getSpriteBatchIndex(column, row));
+			//Before we were drawing to the map tile size, not the tileset size
+			this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(), tmxTile.getTileY(), offset_tilesize[2], offset_tilesize[3], Color.WHITE_ABGR_PACKED_FLOAT);
+			this.submit(); // TODO Doesn't need to be called here, but should rather be called in a "init" step, when parsing the XML is complete.
+			// Notify the ITMXTilePropertiesListener if it exists. 
+			if(pTMXTilePropertyListener != null) {
+				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap.getTMXTileProperties(pGlobalTileID);
+				if(tmxTileProperties != null) {
+					pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
+					//Log.i(TAG, "tmxTileProperties created, size " + tmxTileProperties.size());
+				}
+			}
+		}
+		this.mTilesAdded++;
+	}
+
+	private int getSpriteBatchIndex(final int pColumn, final int pRow) {
+		return pRow * this.mTileColumns + pColumn;
+	}
+
+	private int readGlobalTileID(final DataInputStream pDataIn) throws IOException {
+		final int lowestByte = pDataIn.read();
+		final int secondLowestByte = pDataIn.read();
+		final int secondHighestByte = pDataIn.read();
+		final int highestByte = pDataIn.read();
+
+		if(lowestByte < 0 || secondLowestByte < 0 || secondHighestByte < 0 || highestByte < 0) {
+			throw new IllegalArgumentException("Couldn't read global Tile ID.");
+		}
+
+		return lowestByte | secondLowestByte <<  8 |secondHighestByte << 16 | highestByte << 24;
+	}
+
+	// ===========================================================
+	// Inner and Anonymous Classes
+	// ===========================================================
+
+	// ===========================================================
+	// Drawing options
+	// ===========================================================
+
+	/**
+	 * Call if this if the map is Orthogonal <br>
+	 * This is the original unmodified orthogonal render
+	 * @param pGLState
+	 * @param pCamera
+	 */
+	private void drawOrthogonal(final GLState pGLState, final Camera pCamera){
 		final int tileColumns = this.mTileColumns;
 		final int tileRows = this.mTileRows;
 		final int tileWidth = this.mTMXTiledMap.getTileWidth();
@@ -206,107 +696,137 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			}
 		}
 	}
-
-	// ===========================================================
-	// Methods
-	// ===========================================================
-
-	void initializeTMXTileFromXML(final Attributes pAttributes, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
-		this.addTileByGlobalTileID(SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_TILE_ATTRIBUTE_GID), pTMXTilePropertyListener);
+	
+	/**
+	 * Call this if the map is Isometric. <br>
+	 * This calls the desired draw method that the user desires.
+	 * @param pGLState
+	 * @param pCamera
+	 */
+	private void drawIsometric(final GLState pGLState, final Camera pCamera){ 
+		if(this.DRAW_METHOD_ISOMETRIC == TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_ALL){
+			this.drawIsometricAll(pGLState, pCamera);
+		}else if(this.DRAW_METHOD_ISOMETRIC == TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_CULLING_SLIM){
+			this.drawIsometricCullingLoop(pGLState, pCamera);
+		}else if(this.DRAW_METHOD_ISOMETRIC == TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_CULLING_PADDING){
+			this.drawIsometricCullingLoopExtra(pGLState, pCamera);
+		}else{
+			Log.w(TAG, String.format("Draw method %d is currently not supported or an unknown draw method. Will use the default draw method."
+					, this.DRAW_METHOD_ISOMETRIC));
+			this.DRAW_METHOD_ISOMETRIC = TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_ALL;
+			this.drawIsometricAll(pGLState, pCamera);
+		}
 	}
 
-	void initializeTMXTilesFromDataString(final String pDataString, final String pDataEncoding, final String pDataCompression, final ITMXTilePropertiesListener pTMXTilePropertyListener) throws IOException, IllegalArgumentException {
-		DataInputStream dataIn = null;
-		try{
-			InputStream in = new ByteArrayInputStream(pDataString.getBytes("UTF-8"));
-
-			/* Wrap decoding Streams if necessary. */
-			if(pDataEncoding != null && pDataEncoding.equals(TMXConstants.TAG_DATA_ATTRIBUTE_ENCODING_VALUE_BASE64)) {
-				in = new Base64InputStream(in, Base64.DEFAULT);
+	/**
+	 * This will draw all the tiles of an isometric map. <br>
+	 * This is the most inefficient way to draw the tiles as no culling occurs
+	 * e.g even if the tile isn't on the screen its still being drawn!
+	 * <br>
+	 * Using this will result in low FPS. So really unsuitable for large maps.
+	 * @param pGLState {@link GLState}
+	 * @param pCamera {@link Camera}
+	 */
+	public void drawIsometricAll(final GLState pGLState, final Camera pCamera){
+		final int tileColumns = this.mTileColumns;
+		final int tileRows = this.mTileRows;
+		for (int j = 0; j < tileRows; j++) {
+			for (int i = 0; i < tileColumns; i++) {
+				this.mSpriteBatchVertexBufferObject.draw(GLES20.GL_TRIANGLE_STRIP, 
+						this.getSpriteBatchIndex(i, j) * SpriteBatch.VERTICES_PER_SPRITE, 
+						SpriteBatch.VERTICES_PER_SPRITE);
 			}
-			if(pDataCompression != null){
-				if(pDataCompression.equals(TMXConstants.TAG_DATA_ATTRIBUTE_COMPRESSION_VALUE_GZIP)) {
-					in = new GZIPInputStream(in);
-				} else {
-					throw new IllegalArgumentException("Supplied compression '" + pDataCompression + "' is not supported yet.");
+		}
+	}
+
+	/**
+	 * This loops through all the tiles and checks if the centre location of
+	 * the tile is within the screen space.
+	 * <br>
+	 * This is not the most efficient way to draw, but FPS is okish.
+	 * @param pGLState
+	 * @param pCamera
+	 */
+	public void drawIsometricCullingLoop(final GLState pGLState, final Camera pCamera){
+		final float cameraMinX = pCamera.getXMin();
+		final float cameraMinY = pCamera.getYMin();
+		final float cameraWidth = pCamera.getWidth();
+		final float cameraHeight = pCamera.getHeight();
+		final int tileColumns = this.mTileColumns;
+		final int tileRows = this.mTileRows;
+		
+		final int yWholeMax = (int) (cameraMinY + cameraHeight);
+		final int yWholeMin = (int) cameraMinY;
+		final int xWholeMax = (int) (cameraMinX + cameraWidth);
+		final int xWholeMin = (int) cameraMinX;
+
+		for (int j = 0; j < tileRows; j++) {
+			for (int i = 0; i < tileColumns; i++) {
+				TMXTile tile = this.getTMXTile(i, j);
+				if(tile.getTileYIsoCentre() < yWholeMax &&
+						tile.getTileYIsoCentre() > yWholeMin){				
+					if(tile.getTileXIsoCentre() < xWholeMax
+							&& tile.getTileXIsoCentre() > xWholeMin) {
+						this.mSpriteBatchVertexBufferObject.draw(GLES20.GL_TRIANGLE_STRIP, 
+								this.getSpriteBatchIndex(i, j) * SpriteBatch.VERTICES_PER_SPRITE, 
+								SpriteBatch.VERTICES_PER_SPRITE);
+					}
 				}
 			}
-			dataIn = new DataInputStream(in);
-
-			while(this.mTilesAdded < this.mGlobalTileIDsExpected) {
-				final int globalTileID = this.readGlobalTileID(dataIn);
-				this.addTileByGlobalTileID(globalTileID, pTMXTilePropertyListener);
-			}
-		} finally {
-			StreamUtils.close(dataIn);
 		}
 	}
 
-	private void addTileByGlobalTileID(final int pGlobalTileID, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
-		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
+	/**
+	 * This loops through all the tiles and checks if the centre location of
+	 * the tile is within or partly in the screen space.
+	 * <br>
+	 * This is not the most efficient way to draw, but FPS is okish.
+	 * @param pGLState
+	 * @param pCamera
+	 */
+	public void drawIsometricCullingLoopExtra(final GLState pGLState, final Camera pCamera){
+		final float cameraMinX = pCamera.getXMin();
+		final float cameraMinY = pCamera.getYMin();
+		final float cameraWidth = pCamera.getWidth();
+		final float cameraHeight = pCamera.getHeight();
+		final int tileColumns = this.mTileColumns;
+		final int tileRows = this.mTileRows;
+		final float tileHeight = this.mTMXTiledMap.getTileHeight();
+		final float tileWidth = this.mTMXTiledMap.getTileWidth();
 
-		final int tilesHorizontal = this.mTileColumns;
+		final int yWholeMax = (int) (cameraMinY + cameraHeight);
+		final int yWholeMin = (int) cameraMinY;
+		final int yPartialMax = (int) (yWholeMax + tileHeight);
+		final int yPartialMin = (int) (yWholeMin - tileHeight);
 
-		final int column = this.mTilesAdded % tilesHorizontal;
-		final int row = this.mTilesAdded / tilesHorizontal;
+		final int xWholeMax = (int) (cameraMinX + cameraWidth);
+		final int xWholeMin = (int) cameraMinX;
+		final int xPartialMax = (int) (xWholeMax + tileWidth);
+		final int xPartialMin =(int) (xWholeMin - tileWidth);
 
-		final TMXTile[][] tmxTiles = this.mTMXTiles;
+		final float[] cullingVertices = this.mCullingVertices;
+		RectangularShapeCollisionChecker.fillVertices(0, 0, this.mWidth, this.mHeight, this.getLocalToSceneTransformation(), cullingVertices);
 
-		final ITextureRegion tmxTileTextureRegion;
-		if(pGlobalTileID == 0) {
-			tmxTileTextureRegion = null;
-		} else {
-			tmxTileTextureRegion = tmxTiledMap.getTextureRegionFromGlobalTileID(pGlobalTileID);
-		}
-		final int tileHeight = this.mTMXTiledMap.getTileHeight();
-		final int tileWidth = this.mTMXTiledMap.getTileWidth();
-
-		if(this.mTexture == null) {
-			this.mTexture = tmxTileTextureRegion.getTexture();
-			super.initBlendFunction(this.mTexture);
-		} else {
-			if(this.mTexture != tmxTileTextureRegion.getTexture()) {
-				throw new AndEngineRuntimeException("All TMXTiles in a TMXLayer need to be in the same TMXTileSet.");
-			}
-		}
-		final TMXTile tmxTile = new TMXTile(pGlobalTileID, column, row, tileWidth, tileHeight, tmxTileTextureRegion);
-		tmxTiles[row][column] = tmxTile;
-
-		this.setIndex(this.getSpriteBatchIndex(column, row));
-		this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(), tmxTile.getTileY(), tileWidth, tileHeight, Color.WHITE_ABGR_PACKED_FLOAT);
-		this.submit(); // TODO Doesn't need to be called here, but should rather be called in a "init" step, when parsing the XML is complete.
-
-		if(pGlobalTileID != 0) {
-			/* Notify the ITMXTilePropertiesListener if it exists. */
-			if(pTMXTilePropertyListener != null) {
-				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap.getTMXTileProperties(pGlobalTileID);
-				if(tmxTileProperties != null) {
-					pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
+		for (int j = 0; j < tileRows; j++) {
+			for (int i = 0; i < tileColumns; i++) {
+				TMXTile tile = this.getTMXTile(i, j);
+				if(tile.getTileYIsoCentre() < yWholeMax &&
+						tile.getTileYIsoCentre() > yWholeMin ||
+						tile.getTileYIsoCentre() < yPartialMax && 
+						tile.getTileYIsoCentre() > yPartialMin
+						){				
+					if(tile.getTileXIsoCentre() < xWholeMax
+							&& tile.getTileXIsoCentre() > xWholeMin ||
+							tile.getTileXIsoCentre() < xPartialMax
+							&& tile.getTileXIsoCentre() > xPartialMin
+							){
+						this.mSpriteBatchVertexBufferObject.draw(GLES20.GL_TRIANGLE_STRIP, 
+								this.getSpriteBatchIndex(i, j) * SpriteBatch.VERTICES_PER_SPRITE, 
+								SpriteBatch.VERTICES_PER_SPRITE);
+					}
 				}
 			}
 		}
-
-		this.mTilesAdded++;
 	}
-
-	private int getSpriteBatchIndex(final int pColumn, final int pRow) {
-		return pRow * this.mTileColumns + pColumn;
-	}
-
-	private int readGlobalTileID(final DataInputStream pDataIn) throws IOException {
-		final int lowestByte = pDataIn.read();
-		final int secondLowestByte = pDataIn.read();
-		final int secondHighestByte = pDataIn.read();
-		final int highestByte = pDataIn.read();
-
-		if(lowestByte < 0 || secondLowestByte < 0 || secondHighestByte < 0 || highestByte < 0) {
-			throw new IllegalArgumentException("Couldn't read global Tile ID.");
-		}
-
-		return lowestByte | secondLowestByte <<  8 |secondHighestByte << 16 | highestByte << 24;
-	}
-
-	// ===========================================================
-	// Inner and Anonymous Classes
-	// ===========================================================
+	
 }

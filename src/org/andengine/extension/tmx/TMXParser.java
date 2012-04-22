@@ -62,6 +62,7 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	private boolean mInObjectGroup;
 	private boolean mInObject;
 
+
 	// ===========================================================
 	// Constructors
 	// ===========================================================

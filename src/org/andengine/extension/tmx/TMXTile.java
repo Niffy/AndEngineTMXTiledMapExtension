@@ -1,6 +1,9 @@
 package org.andengine.extension.tmx;
 
+import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.opengl.texture.region.ITextureRegion;
+
+import android.R.integer;
 
 /**
  * (c) 2010 Nicolas Gramlich
@@ -24,13 +27,31 @@ public class TMXTile {
 	private final int mTileWidth;
 	private final int mTileHeight;
 	ITextureRegion mTextureRegion;
+	
+	private final int mTileZ;
+	private final String mOrientation;
+	private int mTileXIso = 0;
+	private int mTileYIso = 0;
+	private int mTileXIsoCentre = 0;
+	private int mTileYIsoCentre = 0;
 
 	// ===========================================================
 	// Constructors
 	// ===========================================================
-
-	public TMXTile(final int pGlobalTileID, final int pTileColumn, final int pTileRow, final int pTileWidth, final int pTileHeight, final ITextureRegion pTextureRegion) {
+	/**
+	 * 
+	 * @param pGlobalTileID
+	 * @param pTileZ Z {@link integer} of the Z index
+	 * @param pTileColumn
+	 * @param pTileRow
+	 * @param pTileWidth
+	 * @param pTileHeight
+	 * @param pTextureRegion
+	 */
+	public TMXTile(final String pOrientation, final int pGlobalTileID, final int pTileZ, final int pTileColumn, final int pTileRow, final int pTileWidth, final int pTileHeight, final ITextureRegion pTextureRegion) {
+		this.mOrientation = pOrientation;
 		this.mGlobalTileID = pGlobalTileID;
+		this.mTileZ = pTileZ;
 		this.mTileRow = pTileRow;
 		this.mTileColumn = pTileColumn;
 		this.mTileWidth = pTileWidth;
@@ -55,11 +76,23 @@ public class TMXTile {
 	}
 
 	public int getTileX() {
-		return this.mTileColumn * this.mTileWidth;
+		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
+			return this.mTileColumn * this.mTileWidth;
+		}else if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			return this.mTileXIso;
+		}else{
+			return this.mTileColumn * this.mTileWidth;
+		}
 	}
 
 	public int getTileY() {
-		return this.mTileRow * this.mTileHeight;
+		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
+			return this.mTileRow * this.mTileHeight;
+		}else if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			return this.mTileYIso;
+		}else{
+			return this.mTileRow * this.mTileHeight;
+		}
 	}
 
 	public int getTileWidth() {
@@ -73,6 +106,43 @@ public class TMXTile {
 	public ITextureRegion getTextureRegion() {
 		return this.mTextureRegion;
 	}
+	
+	public int getTileZ(){
+		return this.mTileZ;
+	}
+	
+	public int getTileXIso() {
+		return mTileXIso;
+	}
+
+	public void setTileXIso(int mTileXIso) {
+		this.mTileXIso = mTileXIso;
+	}
+
+	public int getTileYIso() {
+		return mTileYIso;
+	}
+
+	public void setTileYIso(int mTileYIso) {
+		this.mTileYIso = mTileYIso;
+	}
+
+	public int getTileXIsoCentre() {
+		return mTileXIsoCentre;
+	}
+
+	public void setTileXIsoCentre(int mTileXIsoCenter) {
+		this.mTileXIsoCentre = mTileXIsoCenter;
+	}
+
+	public int getTileYIsoCentre() {
+		return mTileYIsoCentre;
+	}
+
+	public void setTileYIsoCentre(int mTileYIsoCenter) {
+		this.mTileYIsoCentre = mTileYIsoCenter;
+	}
+	
 
 	/**
 	 * Note this will also set the {@link ITextureRegion} with the associated pGlobalTileID of the {@link TMXTiledMap}.

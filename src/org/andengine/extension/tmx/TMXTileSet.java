@@ -16,6 +16,7 @@ import org.andengine.opengl.texture.region.TextureRegion;
 import org.andengine.util.SAXUtils;
 import org.xml.sax.Attributes;
 
+import android.R.integer;
 import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.util.SparseArray;
@@ -50,6 +51,9 @@ public class TMXTileSet implements TMXConstants {
 
 	private final int mSpacing;
 	private final int mMargin;
+	
+	private int mOffsetX = 0;
+	private int mOffsetY = 0;
 
 	private final SparseArray<TMXProperties<TMXTileProperty>> mTMXTileProperties = new SparseArray<TMXProperties<TMXTileProperty>>();
 
@@ -91,6 +95,16 @@ public class TMXTileSet implements TMXConstants {
 	public final int getTileHeight() {
 		return this.mTileHeight;
 	}
+	
+	/**
+	 * Get the tile set size. <br>
+	 * @return {@link integer} array of tile size
+	 * <br><i>element[0]</i> Tile width.
+	 * <br><i>element[1]</i> Tile weight.
+	 */
+	public final int[] getTileSize(){
+		return new int [] { this.mTileWidth, this.mTileHeight };
+	}
 
 	public int getTilesHorizontal() {
 		return this.mTilesHorizontal;
@@ -99,11 +113,70 @@ public class TMXTileSet implements TMXConstants {
 	public int getTilesVertical() {
 		return this.mTilesVertical;
 	}
+	
+	/**
+	 * Get the last global tileID for this tileset.
+	 * @return {@link integer} of the last global tile ID for this tileset.
+	 */
+	public int getLastGlobalTileID(){
+		/*
+		 * Calculate how many tiles exist in the tile set
+		 * The last ID, is the tile count, minus the first ID minus 1 (1 since we
+		 * already know the first global id).
+		 */
+		return (this.getTilesHorizontal() * this.getTilesVertical()) - this.getFirstGlobalTileID() -1;
+	}
+	
+	/**
+	 * Get the range of global IDs for this tile set
+	 * @return {@link integer} array of first and last global id. 
+	 * <br> <i>element[0]</i> First global id.
+	 * <br> <i>element[1]</i> Last global id.
+	 */
+	public int[] getTileRangeID(){
+		return new int[] { this.getFirstGlobalTileID(), this.getLastGlobalTileID() };
+	}
 
 	public ITexture getTexture() {
 		return this.mTexture;
 	}
+	
+	/**
+	 * Get the offset for this tile set. 
+	 * @return {@link integer} array of X and Y offset.
+	 * <br><i>element [0]</i> X offset.
+	 * <br><i>element [1]</i> Y offset.
+	 */
+	public int[] getOffset(){
+		return new int[] { this.mOffsetX, this.mOffsetY };
+	}
+	
+	/**
+	 * Get the offset for the X axis for this tile set.  
+	 * @return {@link integer} of X offset.
+	 */
+	public int getOffsetX() {
+		return this.mOffsetX;
+	}
 
+	/**
+	 * Get the offset for the Y axis for this tile set.  
+	 * @return {@link integer} of Y offset.
+	 */
+	public int getOffsetY() {
+		return this.mOffsetY;
+	}
+
+	/**
+	 * If the tile set has an offset, pass the attributes related to offsets
+	 * here to parse it.
+	 * @param pAttributes {@link Attributes} from the xml.
+	 */
+	public void addTileOffset(final Attributes pAttributes){
+		this.mOffsetX = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OFFSET_X, 0);
+		this.mOffsetY = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OFFSET_Y, 0);
+	}
+	
 	public void setImageSource(final AssetManager pAssetManager, final TextureManager pTextureManager, final Attributes pAttributes) throws TMXParseException {
 		this.mImageSource = pAttributes.getValue("", TMXConstants.TAG_IMAGE_ATTRIBUTE_SOURCE);
 
@@ -184,7 +257,7 @@ public class TMXTileSet implements TMXConstants {
 
 		return count;
 	}
-
+	
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================

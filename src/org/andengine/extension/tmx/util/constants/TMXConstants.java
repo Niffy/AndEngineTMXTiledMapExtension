@@ -78,6 +78,11 @@ public interface TMXConstants {
 	public static final String TAG_OBJECT_ATTRIBUTE_WIDTH = "width";
 	public static final String TAG_OBJECT_ATTRIBUTE_HEIGHT = "height";
 
+	///Paul Robinson
+	public static final String TAG_OFFSET = "tileoffset";
+	public static final String TAG_OFFSET_X = "x";
+	public static final String TAG_OFFSET_Y = "y";
+
 	// ===========================================================
 	// Methods
 	// ===========================================================
