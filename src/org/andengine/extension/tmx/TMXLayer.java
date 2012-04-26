@@ -128,27 +128,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			//Calculate the half of the tile height and width, saves doing it later
 			this.mIsoHalfTileHeight = this.mTMXTiledMap.getTileHeight() / 2;
 			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
-			//Set up the initial X and Y locations, without any offsets
-			//TODO this is not the best way, look at using rows(map height) * tileWidth / 2. Currently the bottom left tile is not at zero on the x axis
-			this.mIsoXOrigin = (this.mTMXTiledMap.getTileColumns() * this.mTMXTiledMap.getTileWidth()) / 2;
-			/*
-			 * We could implement the following to get the the very bottom left 
-			 * tile to zero, but screws up the getTileAt method and I cannot be 
-			 * bothered to take account for the origin. 
-			 * So if you want to centre the camera initially then have fun...
-			 */
-			/*
-			//this.mIsoXOrigin -= this.mIsoHalfTileWidth;
-			if(this.mTMXTiledMap.getTileColumns() != this.getTileRows()){
-				// IF the map is not even, where the number of rows and columns are 
-				// not the same, then work out the the first tile x location.
-				// This is so the last bottom left tile does not get drawn too far to the right.
-				// In effect that last left bottom tile (column 0, row n) left most tip 
-				//is at Y: 0 
-
-				//this.mIsoXOrigin = (this.mTMXTiledMap.getTileRows() / 2) * this.mTMXTiledMap.getTileWidth();
-			}
-			 */
+			//Set up the origin to draw from.  We can move this across
+			this.mIsoXOrigin = 0;
 		}
 	}
 
@@ -287,7 +268,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		final float[] localCoords = this.convertSceneToLocalCoordinates(pX, pY);
 		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
 
-		float screenX = localCoords[SpriteBatch.VERTEX_INDEX_X] -  this.mTMXTiledMap.getTileHeight() - (this.mTMXTiledMap.getTileHeight() * this.mTMXTiledMap.getTileColumns());
+		float screenX = localCoords[SpriteBatch.VERTEX_INDEX_X] -  this.mTMXTiledMap.getTileHeight();
 		float tileColumn = (localCoords[SpriteBatch.VERTEX_INDEX_Y] / tmxTiledMap.getTileHeight()) + (screenX / tmxTiledMap.getTileWidth());
 		float tileRow = (localCoords[SpriteBatch.VERTEX_INDEX_Y] / tmxTiledMap.getTileHeight()) - (screenX / tmxTiledMap.getTileWidth());
 		if(tileColumn < 0 || tileColumn > this.mTileColumns) {
@@ -323,7 +304,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 */
 		float pX = pTouch[0];
 		float pY = pTouch[1];
-		float screenX = pX - this.mTMXTiledMap.getTileHeight() - (this.mTMXTiledMap.getTileHeight() * this.mTMXTiledMap.getTileColumns());
+		float screenX = pX - this.mTMXTiledMap.getTileHeight();
 		float tileColumn = (pY / this.mTMXTiledMap.getTileHeight()) + (screenX / this.mTMXTiledMap.getTileWidth());
 		float tileRow =  (pY / this.mTMXTiledMap.getTileHeight()) - (screenX / this.mTMXTiledMap.getTileWidth());
 
