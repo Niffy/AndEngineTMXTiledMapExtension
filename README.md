@@ -51,3 +51,5 @@ TMXTiledMap txMap;
 	float pY = pTile.getTileYIsoCentre();
 ```
  
+ ### Notes
+ Be careful when designing layers, as having layers impacts on the performance negatively. 
