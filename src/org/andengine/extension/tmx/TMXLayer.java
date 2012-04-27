@@ -171,10 +171,21 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public TMXTile getTMXTile(final int pTileColumn, final int pTileRow) throws ArrayIndexOutOfBoundsException {
 		return this.mTMXTiles[pTileRow][pTileColumn];
 	}
-
+	
+	/**
+	 * Same as the standard getTMXTile method but returns null if out of bounds.
+	 * <br>The original method just threw and array index out of bounds exception,
+	 * this first checks if the desired row and column are within range, if not
+	 * then null is returned instead.
+	 * 
+	 * @param pTileColumn {@link integer} of column location
+	 * @param pTileRow {@link integer} of row location
+	 * @return {@link TMXTile} if tile is within bounds 
+	 * <b>OR</b> <code>NULL</code> if out of bounds
+	 */
 	public TMXTile getTMXTileCanReturnNull(final int pTileColumn, final int pTileRow) {
-		if(pTileColumn > 0 && pTileColumn < this.mTMXTiles.length 
-				&& pTileRow > 0 && pTileRow < this.mTMXTiles.length){
+		if(pTileColumn >= 0 && pTileColumn < this.mTMXTiles.length 
+				&& pTileRow >= 0 && pTileRow < this.mTMXTiles.length){
 			return this.mTMXTiles[pTileRow][pTileColumn];
 		}else{
 			return null;
