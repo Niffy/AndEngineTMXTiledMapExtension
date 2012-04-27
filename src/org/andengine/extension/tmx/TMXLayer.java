@@ -67,14 +67,15 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	private final int mWidth;
 	private final int mHeight;
 
+	private final double tileratio;
 	/**
 	 * Half the width of the isometric tile
 	 */
-	private int mIsoHalfTileWidth = 0;
+	private final int mIsoHalfTileWidth;
 	/**
 	 * Half the height of the isometric tile
 	 */
-	private int mIsoHalfTileHeight = 0;
+	private final int mIsoHalfTileHeight;
 	/**
 	 * Count how many tiles on the row axis has been added.
 	 */
@@ -86,7 +87,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	/**
 	 * Original X location for the map, helps set an origin point to lay out tiles
 	 */
-	private int mIsoXOrigin = 0;
+	private final int mIsoXOrigin;
 	/**
 	 * What draw method to use for Isometric layers.<br>
 	 * Default draw method is: {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL}
@@ -130,6 +131,12 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
 			//Set up the origin to draw from.  We can move this across
 			this.mIsoXOrigin = 0;
+			this.tileratio = this.mTMXTiledMap.getTileWidth() / this.mTMXTiledMap.getTileHeight();
+		}else{
+			this.mIsoHalfTileHeight = 0;
+			this.mIsoHalfTileWidth = 0;
+			this.tileratio = 0;
+			this.mIsoXOrigin = 0;
 		}
 	}
 
@@ -164,7 +171,17 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public TMXTile getTMXTile(final int pTileColumn, final int pTileRow) throws ArrayIndexOutOfBoundsException {
 		return this.mTMXTiles[pTileRow][pTileColumn];
 	}
-	
+
+	public TMXTile getTMXTileCanReturnNull(final int pTileColumn, final int pTileRow) {
+		if(pTileColumn > 0 && pTileColumn < this.mTMXTiles.length 
+				&& pTileRow > 0 && pTileRow < this.mTMXTiles.length){
+			return this.mTMXTiles[pTileRow][pTileColumn];
+		}else{
+			return null;
+		}
+
+	}
+
 	/**
 	 * Get the origin of an isometric map starting point.
 	 * @return {@link integer} of the drawing origin point of the whole map. 
@@ -185,7 +202,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public void setIsometricDrawMethod(final int pMethod){
 		this.DRAW_METHOD_ISOMETRIC = pMethod;
 	}
-	
+
 	/**
 	 * Get a TMXTile at a given location.
 	 * <br> This takes into account the map orientation. 
@@ -368,7 +385,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	// ===========================================================
 	// Methods
 	// ===========================================================
-	
+
 	void initializeTMXTileFromXML(final Attributes pAttributes, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
 		this.addTileByGlobalTileID(SAXUtils.getIntAttributeOrThrow(pAttributes,TMXConstants.TAG_TILE_ATTRIBUTE_GID), pTMXTilePropertyListener);
 	}
@@ -677,7 +694,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			}
 		}
 	}
-	
+
 	/**
 	 * Call this if the map is Isometric. <br>
 	 * This calls the desired draw method that the user desires.
@@ -691,6 +708,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.drawIsometricCullingLoop(pGLState, pCamera);
 		}else if(this.DRAW_METHOD_ISOMETRIC == TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_CULLING_PADDING){
 			this.drawIsometricCullingLoopExtra(pGLState, pCamera);
+		}else if(this.DRAW_METHOD_ISOMETRIC == TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_CULLING_TILED_SOURCE){
+			this.drawIsometricCullingTiledSource(pGLState, pCamera);
 		}else{
 			Log.w(TAG, String.format("Draw method %d is currently not supported or an unknown draw method. Will use the default draw method."
 					, this.DRAW_METHOD_ISOMETRIC));
@@ -735,7 +754,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		final float cameraHeight = pCamera.getHeight();
 		final int tileColumns = this.mTileColumns;
 		final int tileRows = this.mTileRows;
-		
+
 		final int yWholeMax = (int) (cameraMinY + cameraHeight);
 		final int yWholeMin = (int) cameraMinY;
 		final int xWholeMax = (int) (cameraMinX + cameraWidth);
@@ -809,5 +828,83 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			}
 		}
 	}
+
+	/**
+	 * Culling method taken from method paintLayer in IsoMapView.java 
+	 * from Tiled 0.7.2 source code.  
+	 * <br>Not to dissimilar to the function drawTileLayer in isometricrenderer.cpp 
+	 * from Tiled 0.8.0 source code.  
+	 * <br>Slight performance gain and draws tiles in a different order than the others,
+	 * this does not appear to cause any problems.  The tiles original Z order
+	 * are unaffected.
+	 * <br>
+	 * Copyright 2009-2011, Thorbjørn Lindeijer <thorbjorn@lindeijer.nl>
+	 * @param pGLState
+	 * @param pCamera
+	 */	
+	public void drawIsometricCullingTiledSource(final GLState pGLState, final Camera pCamera){
+		/*
+		 * Copyright 2009-2011, Thorbjørn Lindeijer <thorbjorn@lindeijer.nl>
+		 * <br><a href="http://sourceforge.net/projects/tiled/files/Tiled/0.7.2/tiled-0.7.2-src.zip/">Tiled 0.7.2 source code zip</a>
+		 * <br><a href="https://github.com/bjorn/tiled/blob/master/src/libtiled/isometricrenderer.cpp">Tiled 0.8.0 source code - isometricrenderer.cpp on Github</a>
+		 * Copied across and changed slightly by Paul Robinson.
+		 * Changes being using an int array rather than Point object, 
+		 * The original Tiled Java source code used Point objects.
+		 */
+		final int tileWidth = this.mTMXTiledMap.getTileWidth();
+		final int tileHeight = this.mTMXTiledMap.getTileHeight();
+
+		final float cameraMinX = pCamera.getXMin();
+		final float cameraMinY = pCamera.getYMin();
+		final float cameraWidth = pCamera.getWidth();
+		final float cameraHeight = pCamera.getHeight();
+
+		int tileStepY = tileHeight / 2 == 0 ? 1 : tileHeight / 2;
+		int[] rowItr = screenToTileCoords(cameraMinX, cameraMinY);
+		rowItr[0]--;
+
+		// Determine area to draw from clipping rectangle
+		int columns = (int) (cameraWidth / tileWidth + 3);
+		int rows = (int) ((cameraHeight + tileHeight * 0) / tileStepY + 4);
+		// Draw this map layer
+		for (int y = 0; y < rows; y++) {
+			int[] columnItr = {rowItr[0],rowItr[1]};
+			for (int x = 0; x < columns; x++) {
+				TMXTile tile = getTMXTileCanReturnNull(columnItr[0], columnItr[1]);
+				if (tile != null) {
+					this.mSpriteBatchVertexBufferObject.draw(GLES20.GL_TRIANGLE_STRIP, 
+							this.getSpriteBatchIndex(tile.getTileColumn(), tile.getTileRow()) * SpriteBatch.VERTICES_PER_SPRITE, 
+							SpriteBatch.VERTICES_PER_SPRITE);
+				}
+				// Advance to the next tile
+				columnItr[0]++;
+				columnItr[1]--;
+			}
+			if ((y & 1) > 0) {
+				rowItr[0]++;
+			} else {
+				rowItr[1]++;
+			}
+		}
+	}
 	
+	public int[] screenToTileCoords(float x, float y) {
+		/*
+		 * Copyright 2009-2011, Thorbjørn Lindeijer <thorbjorn@lindeijer.nl>
+		 * <br><a href="http://sourceforge.net/projects/tiled/files/Tiled/0.7.2/tiled-0.7.2-src.zip/">Tiled 0.7.2 source code zip</a>
+		 * <br><a href="https://github.com/bjorn/tiled/blob/master/src/libtiled/isometricrenderer.cpp">Tiled 0.8.0 source code - isometricrenderer.cpp on Github</a>
+		 * Copied across and changed slightly by Paul Robinson.
+		 * Changes being returning an int array rather than Point, 
+		 * I didn't want to keep creating a Point object every time 
+		 */
+		// Translate origin to top-center
+		//Do we need this? Paul Robinson
+		//x -= this.getTileRows() * (this.mIsoHalfTileWidth);
+		int mx = (int) (y + (int)(x / this.tileratio));
+		int my = (int) (y - (int)(x / this.tileratio));
+		// be square in normal projection)
+		return new int[] { 
+				(mx < 0 ? mx - this.mTMXTiledMap.getTileHeight() : mx) / this.mTMXTiledMap.getTileHeight(),
+				(my < 0 ? my - this.mTMXTiledMap.getTileHeight() : my) / this.mTMXTiledMap.getTileHeight()};
+	}
 }
