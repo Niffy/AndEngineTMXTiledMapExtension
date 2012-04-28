@@ -171,7 +171,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public TMXTile getTMXTile(final int pTileColumn, final int pTileRow) throws ArrayIndexOutOfBoundsException {
 		return this.mTMXTiles[pTileRow][pTileColumn];
 	}
-	
+
 	/**
 	 * Same as the standard getTMXTile method but returns null if out of bounds.
 	 * <br>The original method just threw and array index out of bounds exception,
@@ -184,13 +184,12 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * <b>OR</b> <code>NULL</code> if out of bounds
 	 */
 	public TMXTile getTMXTileCanReturnNull(final int pTileColumn, final int pTileRow) {
-		if(pTileColumn >= 0 && pTileColumn < this.mTMXTiles.length 
-				&& pTileRow >= 0 && pTileRow < this.mTMXTiles.length){
+		if(pTileColumn >= 0 && pTileColumn < this.mTileColumns 
+				&& pTileRow >= 0 && pTileRow < this.mTileRows){
 			return this.mTMXTiles[pTileRow][pTileColumn];
 		}else{
 			return null;
 		}
-
 	}
 
 	/**
@@ -898,7 +897,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			}
 		}
 	}
-	
+
 	public int[] screenToTileCoords(float x, float y) {
 		/*
 		 * Copyright 2009-2011, Thorbjørn Lindeijer <thorbjorn@lindeijer.nl>
