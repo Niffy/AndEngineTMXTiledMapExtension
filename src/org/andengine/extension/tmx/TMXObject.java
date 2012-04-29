@@ -1,5 +1,6 @@
 package org.andengine.extension.tmx;
 
+import org.andengine.extension.tmx.util.SAXUtilsObject;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.util.SAXUtils;
 import org.xml.sax.Attributes;
@@ -27,6 +28,9 @@ public class TMXObject implements TMXConstants {
 	private final int mWidth;
 	private final int mHeight;
 	private final TMXProperties<TMXObjectProperty> mTMXObjectProperties = new TMXProperties<TMXObjectProperty>();
+	private int[][] mPolygon_points;
+	private int[][] mPolyline_points;
+	private final int mGID;
 
 	// ===========================================================
 	// Constructors
@@ -39,7 +43,27 @@ public class TMXObject implements TMXConstants {
 		this.mY = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_Y);
 		this.mWidth = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_WIDTH, 0);
 		this.mHeight = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_HEIGHT, 0);
+		this.mPolygon_points = null;
+		this.mPolyline_points = null;
+		this.mGID = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_GID, -1);
 	}
+
+	/**
+	 * Add a polygon to the object.
+	 * @param pAttributes {@link Attributes} to parse.
+	 */
+	public void addPolygon(final Attributes pAttributes){
+		this.mPolygon_points = SAXUtilsObject.getIntPoints(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_POLY_POINTS);
+	}
+
+	/**
+	 * Add a polyline to the object
+	 * @param pAttributes
+	 */
+	public void addPolyline(final Attributes pAttributes){
+		this.mPolyline_points = SAXUtilsObject.getIntPoints(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_POLY_POINTS);
+	}
+
 
 	// ===========================================================
 	// Getter & Setter
@@ -67,6 +91,43 @@ public class TMXObject implements TMXConstants {
 
 	public int getHeight() {
 		return this.mHeight;
+	}
+	
+	/**
+	 * Get GID of this tile object.
+	 * @return {@link Integer} of the GID of what tile to draw. <b>OR</b>
+	 * returns <code>-1</code> if this is not a tile object.
+	 */
+	public int getGID(){
+		return this.mGID;
+	}
+	
+	/**
+	 * Get the Polygons pixel point coordinates for this object.
+	 * The points are relative to the object X and Y pixel coordinates.
+	 * <br>
+	 * The first element in the 2D array [i][j] I is the order of the 
+	 * point as it is read in. While J is [0] = X [1] = Y pixel location.
+	 * 
+	 * @return {@link Integer} 2 Dimensional array of the points or <code>NULL</code>
+	 * if there is none or they could not be parsed correctly.
+	 */
+	public int[][] getPolygonPoints(){
+		return this.mPolygon_points;
+	}
+	
+	/**
+	 * Get the Polylines pixel point coordinates for this object.
+	 * The points are relative to the object X and Y pixel coordinates.
+	 * <br>
+	 * The first element in the 2D array [i][j] I is the order of the 
+	 * point as it is read in. While J is [0] = X [1] = Y pixel location.
+	 * 
+	 * @return {@link Integer} 2 Dimensional array of the points or <code>NULL</code>
+	 * if there is none or they could not be parsed correctly.
+	 */
+	public int[][] getPolylinePoints(){
+		return this.mPolyline_points;
 	}
 
 	public void addTMXObjectProperty(final TMXObjectProperty pTMXObjectProperty) {
