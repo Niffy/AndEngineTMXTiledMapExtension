@@ -40,8 +40,6 @@ import android.util.Log;
  */
 public class TMXLayer extends SpriteBatch implements TMXConstants {
 
-	//TODO Better culling of isometric tiles
-
 	// ===========================================================
 	// Constants
 	// ===========================================================
@@ -50,12 +48,12 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	// Fields
 	// ===========================================================
 
-	private final TMXTiledMap mTMXTiledMap;
+	protected final TMXTiledMap mTMXTiledMap;
 	private final String TAG = "TMXLayer";
 	private final String mName;
 	private final int mTileColumns;
 	private final int mTileRows;
-	private final TMXTile[][] mTMXTiles;
+	protected final TMXTile[][] mTMXTiles;
 
 	private int mTilesAdded;
 	private final int mGlobalTileIDsExpected;
@@ -67,15 +65,15 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	private final int mWidth;
 	private final int mHeight;
 
-	private final double tileratio;
+	private double tileratio = 0;
 	/**
 	 * Half the width of the isometric tile
 	 */
-	private final int mIsoHalfTileWidth;
+	protected int mIsoHalfTileWidth = 0;
 	/**
 	 * Half the height of the isometric tile
 	 */
-	private final int mIsoHalfTileHeight;
+	protected int mIsoHalfTileHeight = 0;
 	/**
 	 * Count how many tiles on the row axis has been added.
 	 */
@@ -87,7 +85,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	/**
 	 * Original X location for the map, helps set an origin point to lay out tiles
 	 */
-	private final int mIsoXOrigin;
+	private int mIsoXOrigin = 0;
 	/**
 	 * What draw method to use for Isometric layers.<br>
 	 * Default draw method is: {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL}
@@ -129,14 +127,39 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			//Calculate the half of the tile height and width, saves doing it later
 			this.mIsoHalfTileHeight = this.mTMXTiledMap.getTileHeight() / 2;
 			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
-			//Set up the origin to draw from.  We can move this across
-			this.mIsoXOrigin = 0;
 			this.tileratio = this.mTMXTiledMap.getTileWidth() / this.mTMXTiledMap.getTileHeight();
-		}else{
-			this.mIsoHalfTileHeight = 0;
-			this.mIsoHalfTileWidth = 0;
-			this.tileratio = 0;
-			this.mIsoXOrigin = 0;
+		}
+	}
+	
+	public TMXLayer(final TMXTiledMap pTMXTiledMap, final VertexBufferObjectManager pVertexBufferObjectManager, final TMXObjectGroup pTMXObjectGroup) {
+		super(null, pTMXTiledMap.getTileWidth() * pTMXTiledMap.getTileHeight(), pVertexBufferObjectManager);
+
+		this.mTMXTiledMap = pTMXTiledMap;
+		this.mName = pTMXObjectGroup.getName();
+		this.mTileColumns = pTMXTiledMap.getTileColumns();
+		this.mTileRows = pTMXTiledMap.getTileRows();
+		this.mTMXTiles = new TMXTile[this.mTileRows][this.mTileColumns];
+
+		this.mWidth = pTMXTiledMap.getTileWidth() * this.mTileColumns;
+		this.mHeight = pTMXTiledMap.getTileHeight() * this.mTileRows;
+
+		this.mRotationCenterX = this.mWidth * 0.5f;
+		this.mRotationCenterY = this.mHeight * 0.5f;
+
+		this.mScaleCenterX = this.mRotationCenterX;
+		this.mScaleCenterY = this.mRotationCenterY;
+
+		this.mGlobalTileIDsExpected = this.mTileColumns * this.mTileRows;
+
+		this.setVisible(true);
+		this.setAlpha(1.0f);
+
+		if(this.mTMXTiledMap.getOrientation().equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			//Paul Robinson
+			//Calculate the half of the tile height and width, saves doing it later
+			this.mIsoHalfTileHeight = this.mTMXTiledMap.getTileHeight() / 2;
+			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
+			this.tileratio = this.mTMXTiledMap.getTileWidth() / this.mTMXTiledMap.getTileHeight();
 		}
 	}
 
@@ -168,6 +191,15 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		return this.mTMXTiles;
 	}
 
+	/**
+	 * Get the {@link TMXTile} at a given location based on a row and column number.
+	 * 
+	 * @param pTileColumn {@link integer} of column location
+	 * @param pTileRow {@link integer} of row location
+	 * @return {@link TMXTile} tile at given location <b>OR</b> <code>NULL</code>
+	 * if no such tile exists (such as when the layer is {@link TMXLayerObjectTiles})
+	 * @throws ArrayIndexOutOfBoundsException 
+	 */
 	public TMXTile getTMXTile(final int pTileColumn, final int pTileRow) throws ArrayIndexOutOfBoundsException {
 		return this.mTMXTiles[pTileRow][pTileColumn];
 	}
@@ -182,6 +214,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * @param pTileRow {@link integer} of row location
 	 * @return {@link TMXTile} if tile is within bounds 
 	 * <b>OR</b> <code>NULL</code> if out of bounds
+	 * @see #getTMXTile(int, int) for a bit more info.
 	 */
 	public TMXTile getTMXTileCanReturnNull(final int pTileColumn, final int pTileRow) {
 		if(pTileColumn >= 0 && pTileColumn < this.mTileColumns 
@@ -638,7 +671,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		this.mTilesAdded++;
 	}
 
-	private int getSpriteBatchIndex(final int pColumn, final int pRow) {
+	protected int getSpriteBatchIndex(final int pColumn, final int pRow) {
 		return pRow * this.mTileColumns + pColumn;
 	}
 

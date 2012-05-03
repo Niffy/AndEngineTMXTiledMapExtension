@@ -34,6 +34,7 @@ public class TMXTile {
 	private int mTileYIso = 0;
 	private int mTileXIsoCentre = 0;
 	private int mTileYIsoCentre = 0;
+	private TMXObject mTMXObject = null;
 
 	// ===========================================================
 	// Constructors
@@ -143,7 +144,26 @@ public class TMXTile {
 		this.mTileYIsoCentre = mTileYIsoCenter;
 	}
 	
-
+	/**
+	 * If this tile is in fact an Object tile(used for collisions), then
+	 * you can set its related TMXObject.
+	 * @param pTMXObject {@link TMXObject} The parent TMXObject
+	 */
+	public void setTMXObject(final TMXObject pTMXObject){
+		this.mTMXObject = pTMXObject;
+	}
+	
+	/**
+	 * If this tile is in fact an Object tile(used for collisions), then
+	 * you can get its related TMXObject.
+	 * @return {@link TMXObject} <b>OR</b> <code>NULL</code> if its not an 
+	 * object tile. It might be a TMXObject based tile, but hasn't got it 
+	 * parent TMXObject set.
+	 */
+	public TMXObject getTMXObject(){
+		return this.mTMXObject;
+	}
+	
 	/**
 	 * Note this will also set the {@link ITextureRegion} with the associated pGlobalTileID of the {@link TMXTiledMap}.
 	 * @param pTMXTiledMap
