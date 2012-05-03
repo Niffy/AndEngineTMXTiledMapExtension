@@ -50,6 +50,12 @@ TMXTiledMap txMap;
 	float pX = pTile.getTileXIsoCentre();
 	float pY = pTile.getTileYIsoCentre();
 ```
- 
- ### Notes
- Be careful when designing layers, as having layers impacts on the performance negatively. 
+
+###Features
+
+- Tile Objects can be drawn on Isometric maps
+- Polygons and Polylines points are parsed but not converted
+
+
+### Notes
+Be careful when designing layers, as having layers impacts on the performance negatively. So avoid large maps and many layers
