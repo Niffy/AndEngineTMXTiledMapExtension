@@ -2,8 +2,11 @@ package org.andengine.extension.tmx;
 
 import org.andengine.extension.tmx.util.SAXUtilsObject;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
+import org.andengine.extension.tmx.util.constants.TMXObjectType;
 import org.andengine.util.SAXUtils;
 import org.xml.sax.Attributes;
+
+import android.R.integer;
 
 /**
  * (c) 2010 Nicolas Gramlich
@@ -31,6 +34,7 @@ public class TMXObject implements TMXConstants {
 	private int[][] mPolygon_points;
 	private int[][] mPolyline_points;
 	private final int mGID;
+	private TMXObjectType mObjectType;
 
 	// ===========================================================
 	// Constructors
@@ -43,9 +47,13 @@ public class TMXObject implements TMXConstants {
 		this.mY = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_Y);
 		this.mWidth = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_WIDTH, 0);
 		this.mHeight = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_HEIGHT, 0);
+		this.mObjectType = TMXObjectType.SIMPLE;
 		this.mPolygon_points = null;
 		this.mPolyline_points = null;
 		this.mGID = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_GID, -1);
+		if(this.mGID == -1){
+			this.mObjectType = TMXObjectType.TILEOBJECT;
+		}
 	}
 
 	/**
@@ -54,6 +62,7 @@ public class TMXObject implements TMXConstants {
 	 */
 	public void addPolygon(final Attributes pAttributes){
 		this.mPolygon_points = SAXUtilsObject.getIntPoints(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_POLY_POINTS);
+		this.mObjectType = TMXObjectType.POLYGON;
 	}
 
 	/**
@@ -62,6 +71,7 @@ public class TMXObject implements TMXConstants {
 	 */
 	public void addPolyline(final Attributes pAttributes){
 		this.mPolyline_points = SAXUtilsObject.getIntPoints(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_POLY_POINTS);
+		this.mObjectType = TMXObjectType.POLYLINE;
 	}
 
 
@@ -73,6 +83,13 @@ public class TMXObject implements TMXConstants {
 		return this.mName;
 	}
 
+	/**
+	 * This relates to a String in the XML of an object, there is not always
+	 * a type listed for items such as a normal object or tile object.
+	 * <br> If you wish to compare objects or know its correct type, then use
+	 * {@link #getObjectType()} instead.
+	 * @return {@link String} of the type listed in the XML.
+	 */
 	public String getType() {
 		return this.mType;
 	}
@@ -91,6 +108,25 @@ public class TMXObject implements TMXConstants {
 
 	public int getHeight() {
 		return this.mHeight;
+	}
+	
+	/**
+	 * What type of object is this?
+	 * <br>You might be better of using {@link #getObjectType()} 
+	 * @return {@link integer} of the TMXObjectType ID. 
+	 */
+	public int getObjectTypeID(){
+		return this.mObjectType.getTMXObjectType();
+	}
+	
+	/**
+	 * What type of object is this?
+	 * <br> If you just want the {@link integer} value then use
+	 * {@link #getObjectTypeID()} or {@link TMXObjectType#getTMXObjectType()} 
+	 * @return {@link TMXObjectType} of what sort of object this is.
+	 */
+	public TMXObjectType getObjectType(){
+		return this.mObjectType;
 	}
 	
 	/**

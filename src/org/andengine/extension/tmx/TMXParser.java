@@ -224,6 +224,9 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			}
 			this.mInData = false;
 		} else if(pLocalName.equals(TMXConstants.TAG_OBJECTGROUP)){
+			//Going to calculate what the TMXObjectgroup consists of.
+			final ArrayList<TMXObjectGroup> tmxObjectGroups = this.mTMXTiledMap.getTMXObjectGroups();
+			tmxObjectGroups.get(tmxObjectGroups.size() - 1).checkType();
 			this.mInObjectGroup = false;
 		} else if(pLocalName.equals(TMXConstants.TAG_OBJECT)){
 			this.mInObject = false;

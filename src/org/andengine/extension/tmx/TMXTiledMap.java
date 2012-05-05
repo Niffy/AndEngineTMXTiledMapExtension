@@ -32,6 +32,11 @@ public class TMXTiledMap implements TMXConstants {
 	private final int mTilesRows;
 	private final int mTileWidth;
 	private final int mTileHeight;
+	/**
+	 * Draw origin, currently this is for Isometric maps only
+	 */
+	private int mOrigin;
+	private int DRAW_METHOD_ISOMETRIC = TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_CULLING_TILED_SOURCE;
 
 	private final ArrayList<TMXTileSet> mTMXTileSets = new ArrayList<TMXTileSet>();
 	private final ArrayList<TMXLayer> mTMXLayers = new ArrayList<TMXLayer>();
@@ -76,7 +81,7 @@ public class TMXTiledMap implements TMXConstants {
 	public final String getOrientation() {
 		return this.mOrientation;
 	}
-	
+
 	/**
 	 * @deprecated Instead use {@link TMXTiledMap#getTileColumns()} * {@link TMXTiledMap#getTileWidth()}.
 	 * @return
@@ -111,6 +116,26 @@ public class TMXTiledMap implements TMXConstants {
 		return this.mTileHeight;
 	}
 
+	/**
+	 * Get the origin of a map starting point. 
+	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.
+	 * @return {@link integer} of the drawing origin point of the whole map. 
+	 * (Where the first tile is drawn)
+	 */
+	public final int getOrigin(){
+		return this.mOrigin;
+	}
+
+	/**
+	 * Set the origin of where the first tile should be drawn.
+	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.
+	 * @param pOrigin {@link integer} of the drawing origin point of the whole map. 
+	 * (Where the first tile is drawn) 
+	 */
+	public void setOrigin(final int pOrigin){
+		this.mOrigin = pOrigin;
+	}
+	
 	void addTMXTileSet(final TMXTileSet pTMXTileSet) {
 		this.mTMXTileSets.add(pTMXTileSet);
 	}
@@ -146,6 +171,14 @@ public class TMXTiledMap implements TMXConstants {
 	public TMXProperties<TMXTiledMapProperty> getTMXTiledMapProperties() {
 		return this.mTMXTiledMapProperties;
 	}
+
+	/**
+	 * Get the Isometric draw method, as defined in {@link TMXIsometricConstants}
+	 * @return
+	 */
+	public int getIsometricDrawMethod(){
+		return this.DRAW_METHOD_ISOMETRIC;
+	}
 	
 	/**
 	 * For all layers set the desired render method as defined in {@link TMXIsometricConstants}
@@ -159,6 +192,7 @@ public class TMXTiledMap implements TMXConstants {
 	 */
 	public void setIsometricDrawMethod(final int pDrawMethod){
 		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
+			this.DRAW_METHOD_ISOMETRIC = pDrawMethod;
 			for (TMXLayer layer : this.mTMXLayers) {
 				layer.setIsometricDrawMethod(pDrawMethod);
 			}
@@ -200,7 +234,7 @@ public class TMXTiledMap implements TMXConstants {
 			return cachedTextureRegion;
 		} else {
 			final ArrayList<TMXTileSet> tmxTileSets = this.mTMXTileSets;
-			
+
 			for(int i = tmxTileSets.size() - 1; i >= 0; i--) {
 				final TMXTileSet tmxTileSet = tmxTileSets.get(i);
 				if(pGlobalTileID >= tmxTileSet.getFirstGlobalTileID()) {
@@ -213,7 +247,7 @@ public class TMXTiledMap implements TMXConstants {
 			throw new IllegalArgumentException("No TextureRegion found for pGlobalTileID=" + pGlobalTileID);
 		}
 	}
-	
+
 	/**
 	 * Get the offset and tile size of the tile set for a given global tile id. <br>
 	 * TODO  This is perhaps not the most efficient way of getting the offset and tile set size,
@@ -231,7 +265,7 @@ public class TMXTiledMap implements TMXConstants {
 		//implemented by Paul Robinson
 		final SparseArray<int[]> globalTileIDMultiCache = this.mGlobalTileIDMultiCache;
 		final int[] offset_and_size = globalTileIDMultiCache.get(pGlobalTileID);
-		
+
 		if(offset_and_size != null){
 			/* Got a cached offset and size for this tile */
 			return offset_and_size;
@@ -250,7 +284,7 @@ public class TMXTiledMap implements TMXConstants {
 			throw new IllegalArgumentException(String.format("No Tileset Offset and/or Tileset Size) found for pGlobalTileID: %d", pGlobalTileID));
 		}
 	}
-	
+
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================

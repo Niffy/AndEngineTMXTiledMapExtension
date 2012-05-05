@@ -83,17 +83,11 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 */
 	private int mAddedRows = 0;
 	/**
-	 * Original X location for the map, helps set an origin point to lay out tiles
-	 */
-	private int mIsoXOrigin = 0;
-	/**
 	 * What draw method to use for Isometric layers.<br>
-	 * Default draw method is: {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_ALL}
-	 * <br> Available:
-	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_PADDING}
-	 * <br> {@link TMXIsometricConstants#DRAW_METHOD_ISOMETRIC_CULLING_SLIM}
+	 * Default draw method is defined in the TMXTiledMap
+	 * {@link TMXTiledMap#getIsometricDrawMethod()}
 	 */
-	private int DRAW_METHOD_ISOMETRIC = 1;
+	private int DRAW_METHOD_ISOMETRIC = TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_ALL;
 
 	// ===========================================================
 	// Constructors
@@ -128,6 +122,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.mIsoHalfTileHeight = this.mTMXTiledMap.getTileHeight() / 2;
 			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
 			this.tileratio = this.mTMXTiledMap.getTileWidth() / this.mTMXTiledMap.getTileHeight();
+			this.setIsometricDrawMethod(this.mTMXTiledMap.getIsometricDrawMethod());
 		}
 	}
 	
@@ -160,6 +155,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.mIsoHalfTileHeight = this.mTMXTiledMap.getTileHeight() / 2;
 			this.mIsoHalfTileWidth = this.mTMXTiledMap.getTileWidth() /2;
 			this.tileratio = this.mTMXTiledMap.getTileWidth() / this.mTMXTiledMap.getTileHeight();
+			this.setIsometricDrawMethod(this.mTMXTiledMap.getIsometricDrawMethod());
 		}
 	}
 
@@ -223,15 +219,6 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		}else{
 			return null;
 		}
-	}
-
-	/**
-	 * Get the origin of an isometric map starting point.
-	 * @return {@link integer} of the drawing origin point of the whole map. 
-	 * (Where the first tile is drawn)
-	 */
-	public int getOrigin(){
-		return this.mIsoXOrigin;
 	}
 
 	/**
@@ -630,7 +617,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 * Perfect meaning a tile from a tileset of the correct height and 
 		 * width matching the map tile height and width.
 		 */
-		int xRealIsoPos = this.mIsoXOrigin + (this.mAddedTilesOnRow * this.mIsoHalfTileWidth); 
+		//int xRealIsoPos = this.mIsoXOrigin + (this.mAddedTilesOnRow * this.mIsoHalfTileWidth); 
+		int xRealIsoPos = this.mTMXTiledMap.getOrigin() + (this.mAddedTilesOnRow * this.mIsoHalfTileWidth);
 		xRealIsoPos = xRealIsoPos - (this.mAddedRows * this.mIsoHalfTileWidth);
 		int yRealIsoPos = (this.mAddedTilesOnRow * this.mIsoHalfTileHeight);
 		yRealIsoPos = yRealIsoPos + (this.mAddedRows * this.mIsoHalfTileHeight);
