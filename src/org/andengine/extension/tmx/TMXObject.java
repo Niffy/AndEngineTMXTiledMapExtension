@@ -51,7 +51,7 @@ public class TMXObject implements TMXConstants {
 		this.mPolygon_points = null;
 		this.mPolyline_points = null;
 		this.mGID = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_GID, -1);
-		if(this.mGID == -1){
+		if(this.mGID != -1){
 			this.mObjectType = TMXObjectType.TILEOBJECT;
 		}
 	}
