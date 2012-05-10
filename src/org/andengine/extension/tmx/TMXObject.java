@@ -47,7 +47,7 @@ public class TMXObject implements TMXConstants {
 		this.mY = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_Y);
 		this.mWidth = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_WIDTH, 0);
 		this.mHeight = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_HEIGHT, 0);
-		this.mObjectType = TMXObjectType.SIMPLE;
+		this.mObjectType = TMXObjectType.RECTANGLE;
 		this.mPolygon_points = null;
 		this.mPolyline_points = null;
 		this.mGID = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_OBJECT_ATTRIBUTE_GID, -1);

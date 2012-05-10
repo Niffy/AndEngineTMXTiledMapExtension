@@ -13,7 +13,7 @@ import android.R.integer;
  * Stores what an object type is, helps to iterate through TMXObjects and understand 
  * what sort of object it is.
  * <br>The available types are:
- * <li>{@link #SIMPLE}
+ * <li>{@link #RECTANGLE}
  * <li>{@link #POLYGON}
  * <li>{@link #POLYLINE}
  * <li>{@link #TILEOBJECT}
@@ -24,7 +24,7 @@ import android.R.integer;
  *
  */
 public enum TMXObjectType {
-	SIMPLE(0),
+	RECTANGLE(0),
 	POLYGON(1),
 	POLYLINE(2),
 	TILEOBJECT(3),
