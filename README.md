@@ -1,11 +1,16 @@
 # AndEngineTMXTiledMapExtension
 
+##Thanks
+[Tiled](http://www.mapeditor.org/ "Tiled")
+Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from the JAVA and Tiled 0.8.0(converted) When this has occured there should be a mention in the source code.  (Any problems regarding this please do contact me and we can fix it!)
+
 ### What it can do
  * Load isometric maps created in tiled
  * Tile offsets (Isometric layers only)
  * Get the tile at scene X and Y location from touch event
  * Get the tile at a given row and column
  * Set isometric draw methods (Yes 3 inefficent methods to choose from!)
+ * Convert pixel coordinates to scene coordinates for Isometric maps
 
 ### How to use it
  * Exactly like you would before with the origin repo.
@@ -54,8 +59,8 @@ TMXTiledMap txMap;
 ###Features
 
 - Tile Objects can be drawn on Isometric maps
-- Polygons and Polylines points are parsed but not converted
+- Polygons and Polylines points can now be converted to scene coordinates for isometric maps using a ConvertIsometricPixelToScene object
 
 
 ### Notes
-Be careful when designing layers, as having layers impacts on the performance negatively. So avoid large maps and many layers
+Be careful when designing layers, as having layers impacts on the performance negatively. So avoid large maps and many layers. 
