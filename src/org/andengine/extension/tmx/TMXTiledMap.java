@@ -206,6 +206,13 @@ public class TMXTiledMap implements TMXConstants {
 	// ===========================================================
 	// Methods
 	// ===========================================================
+	
+	private void updateLayersOrigin(){
+		ArrayList<TMXLayer> layers = this.mTMXLayers;
+		for (TMXLayer tmxLayer : layers) {
+			//
+		}
+	}
 
 	public TMXProperties<TMXTileProperty> getTMXTileProperties(final int pGlobalTileID) {
 		final SparseArray<TMXProperties<TMXTileProperty>> globalTileIDToTMXTilePropertiesCache = this.mGlobalTileIDToTMXTilePropertiesCache;
