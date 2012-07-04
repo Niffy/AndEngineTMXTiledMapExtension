@@ -625,7 +625,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		//int xOffsetPos = xRealIsoPos - Math.abs(offset_tilesize[0]);
 		int yOffsetPos = yRealIsoPos - ((offset_tilesize[3] - tileHeight) - offset_tilesize[1]);
 		/*
-		 * Bug Fix
+		 * Fixes #1
 		 */
 		int xOffsetPos = 0;
 		if(offset_tilesize[0] > 0){
