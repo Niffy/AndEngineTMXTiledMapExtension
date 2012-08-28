@@ -127,7 +127,7 @@ public class TMXLoader {
 			final XMLReader xr = sp.getXMLReader();
 			final TMXParser tmxParser = new TMXParser(this.mAssetManager, this.mTextureManager, this.mTextureOptions, this.mVertexBufferObjectManager, this.mTMXTilePropertyListener);
 			//We've not yet started to read in the map, so now is the chance to set the origin point.
-			tmxParser.setMapOrigin(pMapOriginX, pMapOriginX);
+			tmxParser.setMapOrigin(pMapOriginX, pMapOriginY);
 			xr.setContentHandler(tmxParser);
 
 			xr.parse(new InputSource(new BufferedInputStream(pInputStream)));
