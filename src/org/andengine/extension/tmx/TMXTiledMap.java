@@ -32,10 +32,6 @@ public class TMXTiledMap implements TMXConstants {
 	private final int mTilesRows;
 	private final int mTileWidth;
 	private final int mTileHeight;
-	/**
-	 * Draw origin, currently this is for Isometric maps only
-	 */
-	private int mOrigin;
 	private int DRAW_METHOD_ISOMETRIC = TMXIsometricConstants.DRAW_METHOD_ISOMETRIC_CULLING_TILED_SOURCE;
 
 	private final ArrayList<TMXTileSet> mTMXTileSets = new ArrayList<TMXTileSet>();
@@ -45,7 +41,7 @@ public class TMXTiledMap implements TMXConstants {
 	private final SparseArray<ITextureRegion> mGlobalTileIDToTextureRegionCache = new SparseArray<ITextureRegion>();
 	private final SparseArray<TMXProperties<TMXTileProperty>> mGlobalTileIDToTMXTilePropertiesCache = new SparseArray<TMXProperties<TMXTileProperty>>();
 	/**
-	 * {@link integer} Array cache of offsets and tileset size for global tile ids. 
+	 * {@link integer} Array cache of offsets and tileset size for global tile id's. 
 	 * <br><i>element[0]</i> X offset 
 	 * <br><i>element[1]</i> Y offset
 	 * <br><i>element[2]</i> Tile size width 
@@ -53,6 +49,14 @@ public class TMXTiledMap implements TMXConstants {
 	 */
 	private final SparseArray<int[]> mGlobalTileIDMultiCache = new SparseArray<int[]>();
 	private final TMXProperties<TMXTiledMapProperty> mTMXTiledMapProperties = new TMXProperties<TMXTiledMapProperty>();
+	/**
+	 *  Map drawing origin on the X axis. Isometric support only
+	 */
+	private float mOriginX = 0;
+	/**
+	 * Map drawing origin on the Y axis. Isometric support only
+	 */
+	private float mOriginY = 0;
 
 	// ===========================================================
 	// Constructors
@@ -114,26 +118,6 @@ public class TMXTiledMap implements TMXConstants {
 
 	public final int getTileHeight() {
 		return this.mTileHeight;
-	}
-
-	/**
-	 * Get the origin of a map starting point. 
-	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.
-	 * @return {@link integer} of the drawing origin point of the whole map. 
-	 * (Where the first tile is drawn)
-	 */
-	public final int getOrigin(){
-		return this.mOrigin;
-	}
-
-	/**
-	 * Set the origin of where the first tile should be drawn.
-	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.
-	 * @param pOrigin {@link integer} of the drawing origin point of the whole map. 
-	 * (Where the first tile is drawn) 
-	 */
-	public void setOrigin(final int pOrigin){
-		this.mOrigin = pOrigin;
 	}
 	
 	void addTMXTileSet(final TMXTileSet pTMXTileSet) {
@@ -198,7 +182,38 @@ public class TMXTiledMap implements TMXConstants {
 			}
 		}
 	}
-
+	/**
+	 * Set the origin of where the first tile should be drawn.
+	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.<br>
+	 * When we talk of origin point this is first tile rectangular shape it resides in top left corner.<br>
+	 * <b>Important:</b> This should only be called by the TMXLoader, as the origin should be set as we load in the map by calling {@link TMXLoader#loadFromAsset(String, float, float)} or {@link TMXLoader#load(java.io.InputStream, float, float)},
+	 * this is because as layers are sprite batches, we cannot later change the draw location (well not to my knowledge)
+	 * @param pX {@link Float} of the drawing origin point on the X axis
+	 * @param pY {@link Float} of the drawing origin point on the Y axis.
+	 */
+	public void setMapOrigin(final float pX, final float pY){
+		this.mOriginX = pX;
+		this.mOriginY = pY;
+	}
+	/**
+	 * Get the map drawing origin point on the X Axis, this is where the first tile is drawn on the X axis
+	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.
+	 * @return {@link float} of the drawing origin point on the X axis
+	 * @see #setMapOrigin(float, float)
+	 */
+	public float getMapOriginX(){
+		return this.mOriginX;
+	}
+	/**
+	 * Get the map drawing origin point on the X Axis, this is where the first tile is drawn on the X axis
+	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.
+	 * @return {@link float} of the drawing origin point on the X axis
+	 * @see #setMapOrigin(float, float)
+	 */
+	public float getMapOriginY(){
+		return this.mOriginY;
+	}
+	
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================
@@ -206,14 +221,6 @@ public class TMXTiledMap implements TMXConstants {
 	// ===========================================================
 	// Methods
 	// ===========================================================
-	
-	private void updateLayersOrigin(){
-		ArrayList<TMXLayer> layers = this.mTMXLayers;
-		for (TMXLayer tmxLayer : layers) {
-			//
-		}
-	}
-
 	public TMXProperties<TMXTileProperty> getTMXTileProperties(final int pGlobalTileID) {
 		final SparseArray<TMXProperties<TMXTileProperty>> globalTileIDToTMXTilePropertiesCache = this.mGlobalTileIDToTMXTilePropertiesCache;
 

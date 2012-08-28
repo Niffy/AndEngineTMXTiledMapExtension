@@ -128,7 +128,7 @@ public class ConvertIsometricPixelToScene {
 	 * @param pX {@link Integer} X Origin.
 	 * @param pY {@link integer} Y Origin
 	 * @param pPoints 2D {@link integer} array of the points.
-	 * br><i>Element [j][k]</i>
+	 * <br><i>Element [j][k]</i>
 	 * <br><i>J is a single point</i>
 	 * <br><i>K Element [0] = X</i>
 	 * <br><i>K Element [1] = Y</i>
@@ -251,6 +251,9 @@ public class ConvertIsometricPixelToScene {
 		float X = (pOdd[0] - pOdd[1]) * this.tileHeightF;
 		float Y = (pOdd[0] + pOdd[1]) * this.tileHeightHalfF;	
 		X += this.tileHeightF;
+		//Here we can add the origin(Even if the origin is negative)
+		X += this.mMap.getMapOriginX();
+		Y += this.mMap.getMapOriginY();
 		return new float[] { X, Y };
 	}
 

@@ -30,10 +30,10 @@ public class TMXTile {
 	
 	private final int mTileZ;
 	private final String mOrientation;
-	private int mTileXIso = 0;
-	private int mTileYIso = 0;
-	private int mTileXIsoCentre = 0;
-	private int mTileYIsoCentre = 0;
+	private float mTileXIso = 0;
+	private float mTileYIso = 0;
+	private float mTileXIsoCentre = 0;
+	private float mTileYIsoCentre = 0;
 	private TMXObject mTMXObject = null;
 
 	// ===========================================================
@@ -76,7 +76,7 @@ public class TMXTile {
 		return this.mTileColumn;
 	}
 
-	public int getTileX() {
+	public float getTileX() {
 		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
 			return this.mTileColumn * this.mTileWidth;
 		}else if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
@@ -86,7 +86,7 @@ public class TMXTile {
 		}
 	}
 
-	public int getTileY() {
+	public float getTileY() {
 		if(this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)){
 			return this.mTileRow * this.mTileHeight;
 		}else if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)){
@@ -112,35 +112,35 @@ public class TMXTile {
 		return this.mTileZ;
 	}
 	
-	public int getTileXIso() {
+	public float getTileXIso() {
 		return mTileXIso;
 	}
 
-	public void setTileXIso(int mTileXIso) {
+	public void setTileXIso(float mTileXIso) {
 		this.mTileXIso = mTileXIso;
 	}
 
-	public int getTileYIso() {
+	public float getTileYIso() {
 		return mTileYIso;
 	}
 
-	public void setTileYIso(int mTileYIso) {
+	public void setTileYIso(float mTileYIso) {
 		this.mTileYIso = mTileYIso;
 	}
 
-	public int getTileXIsoCentre() {
+	public float getTileXIsoCentre() {
 		return mTileXIsoCentre;
 	}
 
-	public void setTileXIsoCentre(int mTileXIsoCenter) {
+	public void setTileXIsoCentre(float mTileXIsoCenter) {
 		this.mTileXIsoCentre = mTileXIsoCenter;
 	}
 
-	public int getTileYIsoCentre() {
+	public float getTileYIsoCentre() {
 		return mTileYIsoCentre;
 	}
 
-	public void setTileYIsoCentre(int mTileYIsoCenter) {
+	public void setTileYIsoCentre(float mTileYIsoCenter) {
 		this.mTileYIsoCentre = mTileYIsoCenter;
 	}
 	

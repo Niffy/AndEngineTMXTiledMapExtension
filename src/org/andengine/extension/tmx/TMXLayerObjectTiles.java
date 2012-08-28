@@ -197,17 +197,20 @@ public class TMXLayerObjectTiles extends TMXLayer {
 			 */
 			int[] offset_tilesize = {0,0,tileWidth,tileHeight};
 			offset_tilesize = this.mTMXTiledMap.checkTileSetOffsetAndSize(pGlobalTileID);
-			int xRealIsoPos = this.mTMXTiledMap.getOrigin() + (column * this.mIsoHalfTileWidth); 
+			
+			float xRealIsoPos = this.mTMXTiledMap.getMapOriginX() + (column * this.mIsoHalfTileWidth); 
 			xRealIsoPos = xRealIsoPos - (row * this.mIsoHalfTileWidth);
-			int yRealIsoPos = (column * this.mIsoHalfTileHeight);
+			float yRealIsoPos = this.mTMXTiledMap.getMapOriginY() + (column * this.mIsoHalfTileHeight);
 			yRealIsoPos = yRealIsoPos + (row * this.mIsoHalfTileHeight);
+			
 			/*
 			 * We need to apply the offset different here, in TMXLayer we wanted
 			 * to drop the offset down, here we need to bring it up
 			 * the X offset shouldn't really matter
 			 */
-			int xOffsetPos = xRealIsoPos - Math.abs(offset_tilesize[0]);
-			int yOffsetPos = yRealIsoPos - offset_tilesize[1];
+			float xOffsetPos = xRealIsoPos - Math.abs(offset_tilesize[0]);
+			float yOffsetPos = yRealIsoPos - offset_tilesize[1];
+			
 			tmxTile.setTileXIso(xOffsetPos);
 			tmxTile.setTileYIso(yOffsetPos);
 			/*

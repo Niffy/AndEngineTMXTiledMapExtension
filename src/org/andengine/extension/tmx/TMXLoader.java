@@ -96,22 +96,38 @@ public class TMXLoader {
 	// ===========================================================
 	// Methods
 	// ===========================================================
-
-	public TMXTiledMap loadFromAsset(final String pAssetPath) throws TMXLoadException {
+	/**
+	 * Load a TMX map from a file in the assets folder.
+	 * @param pAssetPath {@link String} of path to asset
+	 * @param pMapOriginX {@link Float} of map origin X. Basically, from where should the first tile draw location be on X axis. (Isometric support only)
+	 * @param pMapOriginY {@link Float} of map origin Y. Basically, from where should the first tile draw location be on Y axis. (Isometric support only)
+	 * @return {@link TMXTiledMap} read in.
+	 * @throws TMXLoadException when the asset could not be read in.
+	 */
+	public TMXTiledMap loadFromAsset(final String pAssetPath, final float pMapOriginX, final float pMapOriginY) throws TMXLoadException {
 		try {
-			return this.load(this.mAssetManager.open(pAssetPath));
+			return this.load(this.mAssetManager.open(pAssetPath),pMapOriginX,pMapOriginY);
 		} catch (final IOException e) {
 			throw new TMXLoadException("Could not load TMXTiledMap from asset: " + pAssetPath, e);
 		}
 	}
-
-	public TMXTiledMap load(final InputStream pInputStream) throws TMXLoadException {
+	/**
+	 * Load a TMX map from a file in the assets folder.
+	 * @param pInputStream {@link InputStream} of file to read in.
+	 * @param pMapOriginX {@link Float} of map origin X. Basically, from where should the first tile draw location be on X axis. (Isometric support only)
+	 * @param pMapOriginY {@link Float} of map origin Y. Basically, from where should the first tile draw location be on Y axis. (Isometric support only)
+	 * @return {@link TMXTiledMap} read in.
+	 * @throws TMXLoadException when the asset could not be read in.
+	 */
+	public TMXTiledMap load(final InputStream pInputStream, final float pMapOriginX, final float pMapOriginY) throws TMXLoadException {
 		try {
 			final SAXParserFactory spf = SAXParserFactory.newInstance();
 			final SAXParser sp = spf.newSAXParser();
 
 			final XMLReader xr = sp.getXMLReader();
 			final TMXParser tmxParser = new TMXParser(this.mAssetManager, this.mTextureManager, this.mTextureOptions, this.mVertexBufferObjectManager, this.mTMXTilePropertyListener);
+			//We've not yet started to read in the map, so now is the chance to set the origin point.
+			tmxParser.setMapOrigin(pMapOriginX, pMapOriginX);
 			xr.setContentHandler(tmxParser);
 
 			xr.parse(new InputSource(new BufferedInputStream(pInputStream)));
