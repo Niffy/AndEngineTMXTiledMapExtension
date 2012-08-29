@@ -12,6 +12,7 @@ Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from 
  * Set isometric draw methods (Yes 3 inefficent methods to choose from!)
  * Convert pixel coordinates to scene coordinates for Isometric maps
  * Set a map draw origin (NEW)
+ * Use a TMXTileSetSourceManager to manage TileSet image sources
 
 ### How to use it
  * Exactly like you would before with the origin repo.
@@ -19,7 +20,7 @@ Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from 
  * When using an Isometric tileset with offsets in Tiled, the X offset has to be negative
  * To set the draw method call the TMXTiledMap method setIsometricDrawMethod
  * Set the map draw origin, in the load method. If you don't want one then use the values 0;
- 
+ * If loading multiple maps with the same tile set, then use a TMXTileSetSourceManager to reduce loading in the same image multiple times.
  
  ```java
 TMXTiledMap txMap;
