@@ -76,18 +76,23 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	 * Map drawing origin on the Y axis. Isometric support only
 	 */
 	private float mOriginY = 0;
+	
+	private boolean mUseLowMemoryVBO = false;
+	private boolean mAllocateTiles = false;
 
 	// ===========================================================
 	// Constructors
 	// ===========================================================
 
-	public TMXParser(final AssetManager pAssetManager, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener, TMXTileSetSourceManager pTMXTileSetSourceManager) {
+	public TMXParser(final AssetManager pAssetManager, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener, TMXTileSetSourceManager pTMXTileSetSourceManager, boolean pUseLowMemoryVBO, boolean pAllocateTiles) {
 		this.mAssetManager = pAssetManager;
 		this.mTextureManager = pTextureManager;
 		this.mTextureOptions = pTextureOptions;
 		this.mVertexBufferObjectManager = pVertexBufferObjectManager;
 		this.mTMXTilePropertyListener = pTMXTilePropertyListener;
 		this.mTMXTileSetSourceManager = pTMXTileSetSourceManager;
+		this.mUseLowMemoryVBO = pUseLowMemoryVBO;
+		this.mAllocateTiles = pAllocateTiles;
 	}
 
 	// ===========================================================
@@ -119,6 +124,8 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			this.mInMap = true;
 			this.mTMXTiledMap = new TMXTiledMap(pAttributes);
 			this.mTMXTiledMap.setMapOrigin(this.mOriginX, this.mOriginY);
+			this.mTMXTiledMap.setAllocateTiles(this.mAllocateTiles);
+			this.mTMXTiledMap.setUseLowMemoryVBO(this.mUseLowMemoryVBO);
 		} else if(pLocalName.equals(TMXConstants.TAG_TILESET)){
 			this.mInTileset = true;
 			final TMXTileSet tmxTileSet;
@@ -179,7 +186,13 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			}
 		} else if(pLocalName.equals(TMXConstants.TAG_LAYER)){
 			this.mInLayer = true;
-			this.mTMXTiledMap.addTMXLayer(new TMXLayer(this.mTMXTiledMap, pAttributes, this.mVertexBufferObjectManager));
+			if(this.mUseLowMemoryVBO){
+				//Use a TMXLayer implementing low memory vbo sprite batch
+				this.mTMXTiledMap.addTMXLayer(new TMXLayerLowMemorySpriteBatch(this.mTMXTiledMap, pAttributes, this.mVertexBufferObjectManager, this.mAllocateTiles));
+			}else{
+				//Use a TMXLayer implementing high performance sprite batch
+				this.mTMXTiledMap.addTMXLayer(new TMXLayerHighPerformanceSpriteBatch(this.mTMXTiledMap, pAttributes, this.mVertexBufferObjectManager, this.mAllocateTiles));
+			}
 		} else if(pLocalName.equals(TMXConstants.TAG_DATA)){
 			this.mInData = true;
 			this.mDataEncoding = pAttributes.getValue("", TMXConstants.TAG_DATA_ATTRIBUTE_ENCODING);

@@ -2,6 +2,10 @@ package org.andengine.extension.tmx;
 
 import java.util.ArrayList;
 
+import org.andengine.entity.sprite.batch.SpriteBatch;
+import org.andengine.entity.sprite.batch.SpriteBatchLowMemoryVBO;
+import org.andengine.entity.sprite.batch.vbo.HighPerformanceSpriteBatchVertexBufferObject;
+import org.andengine.entity.sprite.batch.vbo.LowMemorySpriteBatchVertexBufferObject;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.extension.tmx.util.constants.TMXIsometricConstants;
 import org.andengine.opengl.texture.region.ITextureRegion;
@@ -57,6 +61,9 @@ public class TMXTiledMap implements TMXConstants {
 	 * Map drawing origin on the Y axis. Isometric support only
 	 */
 	private float mOriginY = 0;
+	
+	private boolean mUseLowMemoryVBO = true;
+	private boolean mAllocateTiles = true;
 
 	// ===========================================================
 	// Constructors
@@ -212,6 +219,56 @@ public class TMXTiledMap implements TMXConstants {
 	 */
 	public float getMapOriginY(){
 		return this.mOriginY;
+	}
+	
+	/**
+	 * Set if we are using a {@link SpriteBatchLowMemoryVBO} or {@link SpriteBatch} for the {@link TMXLayer}'s <br>
+	 * Currently only {@link SpriteBatchLowMemoryVBO} is supported. By using a {@link SpriteBatchLowMemoryVBO} we use a
+	 * {@link LowMemorySpriteBatchVertexBufferObject} instead of
+	 * {@link SpriteBatch} {@link HighPerformanceSpriteBatchVertexBufferObject}
+	 * This way we can reduce the memory in use.
+	 * 
+	 * @param pValue
+	 *            {@link Boolean} <code>true</code> using a 
+	 *            {@link SpriteBatchLowMemoryVBO} or <code>false</code> using
+	 *            the standard {@link SpriteBatch}
+	 */
+	public void setUseLowMemoryVBO(boolean pValue) {
+		// this.mUseLowMemoryVBO = pValue;
+	}
+
+	/**
+	 * Were the {@link TMXLayer} implementing {@link SpriteBatch} or
+	 * {@link SpriteBatchLowMemoryVBO}
+	 * 
+	 * @return <code>true</code> if {@link SpriteBatchLowMemoryVBO} is in use,
+	 *         <code>false</code> for {@link SpriteBatch}
+	 */
+	public boolean getUseLowMemoryVBO() {
+		return this.mUseLowMemoryVBO;
+	}
+
+	/**
+	 * Set if {@link TMXTile} where allocated when reading in
+	 * {@link TMXLayer} <br>
+	 * By not allocating tiles we reduce the size of the memory footprint.
+	 * 
+	 * @param pValue
+	 *            <code>true</code> to allocate, <code>false</code> to not
+	 *            allocate.
+	 */
+	public void setAllocateTiles(boolean pValue) {
+		this.mAllocateTiles = pValue;
+	}
+
+	/**
+	 * Were {@link TMXTile} being allocated when creating {@link TMXLayer}
+	 * 
+	 * @return <code>true</code> if we are allocating, <code>false</code> if
+	 *         not.
+	 */
+	public boolean getAllocateTiles() {
+		return this.mAllocateTiles;
 	}
 	
 	// ===========================================================

@@ -8,6 +8,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.andengine.entity.sprite.batch.SpriteBatch;
+import org.andengine.entity.sprite.batch.SpriteBatchLowMemoryVBO;
+import org.andengine.entity.sprite.batch.vbo.HighPerformanceSpriteBatchVertexBufferObject;
+import org.andengine.entity.sprite.batch.vbo.LowMemorySpriteBatchVertexBufferObject;
 import org.andengine.extension.tmx.util.TMXTileSetSourceManager;
 import org.andengine.extension.tmx.util.exception.TMXLoadException;
 import org.andengine.opengl.texture.TextureManager;
@@ -21,8 +25,7 @@ import android.content.Context;
 import android.content.res.AssetManager;
 
 /**
- * (c) 2010 Nicolas Gramlich
- * (c) 2011 Zynga Inc.
+ * (c) 2010 Nicolas Gramlich (c) 2011 Zynga Inc.
  * 
  * @author Nicolas Gramlich
  * @since 19:10:45 - 20.07.2010
@@ -42,44 +45,60 @@ public class TMXLoader {
 	private final VertexBufferObjectManager mVertexBufferObjectManager;
 	private final ITMXTilePropertiesListener mTMXTilePropertyListener;
 	private TMXTileSetSourceManager mTMXTileSetSourceManager;
+	private boolean mUseLowMemoryVBO = true;
+	private boolean mAllocateTiles = true;
 
 	// ===========================================================
 	// Constructors
 	// ===========================================================
 
 	@Deprecated
-	public TMXLoader(final Context pContext, final TextureManager pTextureManager, final VertexBufferObjectManager pVertexBufferObjectManager) {
+	public TMXLoader(final Context pContext, final TextureManager pTextureManager,
+			final VertexBufferObjectManager pVertexBufferObjectManager) {
 		this(pContext.getAssets(), pTextureManager, pVertexBufferObjectManager);
 	}
 
-	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager, final VertexBufferObjectManager pVertexBufferObjectManager) {
+	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager,
+			final VertexBufferObjectManager pVertexBufferObjectManager) {
 		this(pAssetManager, pTextureManager, TextureOptions.DEFAULT, pVertexBufferObjectManager);
 	}
 
 	@Deprecated
-	public TMXLoader(final Context pContext, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager) {
+	public TMXLoader(final Context pContext, final TextureManager pTextureManager,
+			final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager) {
 		this(pContext.getAssets(), pTextureManager, pTextureOptions, pVertexBufferObjectManager);
 	}
 
-	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager) {
+	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager,
+			final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager) {
 		this(pAssetManager, pTextureManager, pTextureOptions, pVertexBufferObjectManager, null, null);
 	}
 
 	@Deprecated
-	public TMXLoader(final Context pContext, final TextureManager pTextureManager, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+	public TMXLoader(final Context pContext, final TextureManager pTextureManager,
+			final VertexBufferObjectManager pVertexBufferObjectManager,
+			final ITMXTilePropertiesListener pTMXTilePropertyListener) {
 		this(pContext.getAssets(), pTextureManager, pVertexBufferObjectManager, pTMXTilePropertyListener);
 	}
 
-	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
-		this(pAssetManager, pTextureManager, TextureOptions.DEFAULT, pVertexBufferObjectManager, pTMXTilePropertyListener, null);
+	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager,
+			final VertexBufferObjectManager pVertexBufferObjectManager,
+			final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+		this(pAssetManager, pTextureManager, TextureOptions.DEFAULT, pVertexBufferObjectManager,
+				pTMXTilePropertyListener, null);
 	}
 
 	@Deprecated
-	public TMXLoader(final Context pContext, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
-		this(pContext.getAssets(), pTextureManager, pTextureOptions, pVertexBufferObjectManager, pTMXTilePropertyListener, null);
+	public TMXLoader(final Context pContext, final TextureManager pTextureManager,
+			final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager,
+			final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+		this(pContext.getAssets(), pTextureManager, pTextureOptions, pVertexBufferObjectManager,
+				pTMXTilePropertyListener, null);
 	}
 
-	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener, TMXTileSetSourceManager pTMXTileSetSourceManager) {
+	public TMXLoader(final AssetManager pAssetManager, final TextureManager pTextureManager,
+			final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager,
+			final ITMXTilePropertiesListener pTMXTilePropertyListener, TMXTileSetSourceManager pTMXTileSetSourceManager) {
 		this.mAssetManager = pAssetManager;
 		this.mTextureManager = pTextureManager;
 		this.mTextureOptions = pTextureOptions;
@@ -93,19 +112,72 @@ public class TMXLoader {
 	// ===========================================================
 	/**
 	 * Set the {@link TMXTileSetSourceManager} the map should use. <br>
-	 * This helps reduce loading in the same tilesets multiple times. 
-	 * @param pTMXTileSetSourceManager {@link TMXTileSetSourceManager} to use.
+	 * This helps reduce loading in the same tilesets multiple times.
+	 * 
+	 * @param pTMXTileSetSourceManager
+	 *            {@link TMXTileSetSourceManager} to use.
 	 */
-	public void setTMXTileSetSourceManager(TMXTileSetSourceManager pTMXTileSetSourceManager){
+	public void setTMXTileSetSourceManager(TMXTileSetSourceManager pTMXTileSetSourceManager) {
 		this.mTMXTileSetSourceManager = pTMXTileSetSourceManager;
 	}
+
 	/**
 	 * Get the {@link TMXTileSetSourceManager} in use
+	 * 
 	 * @return {@link TMXTileSetSourceManager} in use
 	 */
-	public TMXTileSetSourceManager getTMXTileSetSourceManger(){
+	public TMXTileSetSourceManager getTMXTileSetSourceManger() {
 		return this.mTMXTileSetSourceManager;
 	}
+
+	/**
+	 * Set if we should use a {@link SpriteBatchLowMemoryVBO} when creating a
+	 * {@link TMXLayer}. <br>
+	 * This way we can reduce the memory in use
+	 * 
+	 * @param pValue
+	 *            {@link Boolean} <code>true</code> to use a
+	 *            {@link SpriteBatchLowMemoryVBO} or <code>false</code> to use
+	 *            the standard {@link SpriteBatch}
+	 */
+	public void setUseLowMemoryVBO(boolean pValue) {
+		this.mUseLowMemoryVBO = pValue;
+	}
+
+	/**
+	 * Are the {@link TMXLayer} implementing {@link SpriteBatch} or
+	 * {@link SpriteBatchLowMemoryVBO}
+	 * 
+	 * @return <code>true</code> if {@link SpriteBatchLowMemoryVBO} is in use,
+	 *         <code>false</code> for {@link SpriteBatch}
+	 */
+	public boolean getUseLowMemoryVBO() {
+		return this.mUseLowMemoryVBO;
+	}
+
+	/**
+	 * Set if we should allocate {@link TMXTile} when reading in
+	 * {@link TMXLayer} <br>
+	 * By not allocating tiles we reduce the size of the memory footprint.
+	 * 
+	 * @param pValue
+	 *            <code>true</code> to allocate, <code>false</code> to not
+	 *            allocate.
+	 */
+	public void setAllocateTiles(boolean pValue) {
+		this.mAllocateTiles = pValue;
+	}
+
+	/**
+	 * Are {@link TMXTile} being allocated when creating {@link TMXLayer}
+	 * 
+	 * @return <code>true</code> if we are allocating, <code>false</code> if
+	 *         not.
+	 */
+	public boolean getAllocateTiles() {
+		return this.mAllocateTiles;
+	}
+
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================
@@ -115,7 +187,7 @@ public class TMXLoader {
 	// ===========================================================
 	public TMXTiledMap loadFromAsset(final String pAssetPath) throws TMXLoadException {
 		try {
-			return this.load(this.mAssetManager.open(pAssetPath),0,0);
+			return this.load(this.mAssetManager.open(pAssetPath), 0, 0);
 		} catch (final IOException e) {
 			throw new TMXLoadException("Could not load TMXTiledMap from asset: " + pAssetPath, e);
 		}
@@ -123,35 +195,59 @@ public class TMXLoader {
 
 	/**
 	 * Load a TMX map from a file in the assets folder.
-	 * @param pAssetPath {@link String} of path to asset
-	 * @param pMapOriginX {@link Float} of map origin X. Basically, from where should the first tile draw location be on X axis. (Isometric support only)
-	 * @param pMapOriginY {@link Float} of map origin Y. Basically, from where should the first tile draw location be on Y axis. (Isometric support only)
+	 * 
+	 * @param pAssetPath
+	 *            {@link String} of path to asset
+	 * @param pMapOriginX
+	 *            {@link Float} of map origin X. Basically, from where should
+	 *            the first tile draw location be on X axis. (Isometric support
+	 *            only)
+	 * @param pMapOriginY
+	 *            {@link Float} of map origin Y. Basically, from where should
+	 *            the first tile draw location be on Y axis. (Isometric support
+	 *            only)
 	 * @return {@link TMXTiledMap} read in.
-	 * @throws TMXLoadException when the asset could not be read in.
+	 * @throws TMXLoadException
+	 *             when the asset could not be read in.
 	 */
-	public TMXTiledMap loadFromAsset(final String pAssetPath, final float pMapOriginX, final float pMapOriginY) throws TMXLoadException {
+	public TMXTiledMap loadFromAsset(final String pAssetPath, final float pMapOriginX, final float pMapOriginY)
+			throws TMXLoadException {
 		try {
-			return this.load(this.mAssetManager.open(pAssetPath),pMapOriginX,pMapOriginY);
+			return this.load(this.mAssetManager.open(pAssetPath), pMapOriginX, pMapOriginY);
 		} catch (final IOException e) {
 			throw new TMXLoadException("Could not load TMXTiledMap from asset: " + pAssetPath, e);
 		}
 	}
+
 	/**
 	 * Load a TMX map from a file in the assets folder.
-	 * @param pInputStream {@link InputStream} of file to read in.
-	 * @param pMapOriginX {@link Float} of map origin X. Basically, from where should the first tile draw location be on X axis. (Isometric support only)
-	 * @param pMapOriginY {@link Float} of map origin Y. Basically, from where should the first tile draw location be on Y axis. (Isometric support only)
+	 * 
+	 * @param pInputStream
+	 *            {@link InputStream} of file to read in.
+	 * @param pMapOriginX
+	 *            {@link Float} of map origin X. Basically, from where should
+	 *            the first tile draw location be on X axis. (Isometric support
+	 *            only)
+	 * @param pMapOriginY
+	 *            {@link Float} of map origin Y. Basically, from where should
+	 *            the first tile draw location be on Y axis. (Isometric support
+	 *            only)
 	 * @return {@link TMXTiledMap} read in.
-	 * @throws TMXLoadException when the asset could not be read in.
+	 * @throws TMXLoadException
+	 *             when the asset could not be read in.
 	 */
-	public TMXTiledMap load(final InputStream pInputStream, final float pMapOriginX, final float pMapOriginY) throws TMXLoadException {
+	public TMXTiledMap load(final InputStream pInputStream, final float pMapOriginX, final float pMapOriginY)
+			throws TMXLoadException {
 		try {
 			final SAXParserFactory spf = SAXParserFactory.newInstance();
 			final SAXParser sp = spf.newSAXParser();
 
 			final XMLReader xr = sp.getXMLReader();
-			final TMXParser tmxParser = new TMXParser(this.mAssetManager, this.mTextureManager, this.mTextureOptions, this.mVertexBufferObjectManager, this.mTMXTilePropertyListener, this.mTMXTileSetSourceManager);
-			//We've not yet started to read in the map, so now is the chance to set the origin point.
+			final TMXParser tmxParser = new TMXParser(this.mAssetManager, this.mTextureManager, this.mTextureOptions,
+					this.mVertexBufferObjectManager, this.mTMXTilePropertyListener, this.mTMXTileSetSourceManager,
+					this.mUseLowMemoryVBO, this.mAllocateTiles);
+			// We've not yet started to read in the map, so now is the chance to
+			// set the origin point.
 			/*
 			 * Fixes #2 
 			 */
@@ -184,6 +280,7 @@ public class TMXLoader {
 		// Methods
 		// ===========================================================
 
-		public void onTMXTileWithPropertiesCreated(final TMXTiledMap pTMXTiledMap, final TMXLayer pTMXLayer, final TMXTile pTMXTile, final TMXProperties<TMXTileProperty> pTMXTileProperties);
+		public void onTMXTileWithPropertiesCreated(final TMXTiledMap pTMXTiledMap, final TMXLayer pTMXLayer,
+				final TMXTile pTMXTile, final TMXProperties<TMXTileProperty> pTMXTileProperties);
 	}
 }
