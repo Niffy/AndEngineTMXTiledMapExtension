@@ -13,6 +13,8 @@ Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from 
  * Convert pixel coordinates to scene coordinates for Isometric maps
  * Set a map draw origin (NEW)
  * Use a TMXTileSetSourceManager to manage TileSet image sources
+ * Set if we allocate TMX tiles(on TMXLayers), helps to save memory if you don't want the overhead.
+ * Set the TMXLayer on creation to use a LowMemorySpriteBatchVertexBufferObject or a HighPerformanceSpriteBatchVertexBufferObject
 
 ### How to use it
  * Exactly like you would before with the origin repo.
@@ -20,7 +22,11 @@ Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from 
  * When using an Isometric tileset with offsets in Tiled, the X offset has to be negative
  * To set the draw method call the TMXTiledMap method setIsometricDrawMethod
  * Set the map draw origin, in the load method. If you don't want one then use the values 0;
- * If loading multiple maps with the same tile set, then use a TMXTileSetSourceManager to reduce loading in the same image multiple times.
+ * If loading multiple maps with the same tile set, then use a TMXTileSetSourceManager to reduce loading in the same image multiple times. You could probably even use this elsewhere!
+ * To not allocate TMX Tiles use #setAllocateTiles(boolean pValue)
+ * To use a LowMemorySpriteBatchVertexBufferObject call #setUseLowMemoryVBO(boolean pValue)
+ * If not allocating TMXTiles then use #getRowColAtIsometric(float[] pTouch) to get the row and column tile. 
+ * If not allocating TMXTiles to get the centre of the tile use #getIsoTileCentreAt(final int pTileColumn, final int pTileRow)
  
  ```java
 TMXTiledMap txMap;
@@ -44,11 +50,16 @@ TMXTiledMap txMap;
 	if(tmxSelected != null){
 		//Got a tile
 	}
-	//Alternative way
+//Alternative way
 	TMXTile TMXTileIsoAlt = this.mMap.getTMXLayers().get(0).getTMXTileAtIsometricAlternative(pToTiles);
 		if(TMXTileIsoAlt != null){
 			//got a tile
 		}			
+//Not allocating tiles
+	int[] found = this.maps.get(0).getTMXLayers().get(0).getRowColAtIsometric(pToTiles);
+	if(found != null){
+		//Got location Row = found[0] Column = found[1]
+	}
 ```
 
  * To get the centre of the tile
@@ -57,6 +68,9 @@ TMXTiledMap txMap;
 	TMXTile pTile;
 	float pX = pTile.getTileXIsoCentre();
 	float pY = pTile.getTileYIsoCentre();
+//not allocating tiles
+	float[] centre = getIsoTileCentreAt(column, row);
+	//centre[0] = X centre[1] = Y
 ```
 
 ###Features
@@ -64,6 +78,7 @@ TMXTiledMap txMap;
 - Tile Objects can be drawn on Isometric maps
 - Polygons and Polylines points can now be converted to scene coordinates for isometric maps using a ConvertIsometricPixelToScene object
 - Set a map draw origin, making it possible to have multiple maps in a scene. 
+- Choose not to allocate TMXTiles(on TMXLayers) and set VBO to use, helps reduce memory usage if required.
 
 
 ### Notes
