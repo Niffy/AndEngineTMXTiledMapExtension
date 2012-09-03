@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="org/andengine/extension/tmx/TMXLayerObjectTiles.java|org/andengine/extension/tmx/TMXLayer_Old.java" kind="src" path="src"/>
+	<classpathentry excluding="org/andengine/extension/tmx/ITMXLayer.java|org/andengine/extension/tmx/TMXLayerHighPerformanceSpriteBatch.java|org/andengine/extension/tmx/TMXLayerLowMemorySpriteBatch.java|org/andengine/extension/tmx/TMXLayerObjectTilesHighPerformanceSpriteBatch.java|org/andengine/extension/tmx/TMXLayerObjectTilesLowMemorySpriteBatch.java" kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>

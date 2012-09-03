@@ -9,7 +9,6 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.andengine.entity.sprite.batch.SpriteBatch;
-import org.andengine.entity.sprite.batch.SpriteBatchLowMemoryVBO;
 import org.andengine.entity.sprite.batch.vbo.HighPerformanceSpriteBatchVertexBufferObject;
 import org.andengine.entity.sprite.batch.vbo.LowMemorySpriteBatchVertexBufferObject;
 import org.andengine.extension.tmx.util.TMXTileSetSourceManager;
@@ -131,25 +130,25 @@ public class TMXLoader {
 	}
 
 	/**
-	 * Set if we should use a {@link SpriteBatchLowMemoryVBO} when creating a
+	 * Set if we should use a {@link LowMemorySpriteBatchVertexBufferObject} when creating a
 	 * {@link TMXLayer}. <br>
 	 * This way we can reduce the memory in use
 	 * 
 	 * @param pValue
 	 *            {@link Boolean} <code>true</code> to use a
-	 *            {@link SpriteBatchLowMemoryVBO} or <code>false</code> to use
-	 *            the standard {@link SpriteBatch}
+	 *            {@link LowMemorySpriteBatchVertexBufferObject} or <code>false</code> to use
+	 *            the standard {@link SpriteBatch} {@link HighPerformanceSpriteBatchVertexBufferObject}
 	 */
 	public void setUseLowMemoryVBO(boolean pValue) {
 		this.mUseLowMemoryVBO = pValue;
 	}
 
 	/**
-	 * Are the {@link TMXLayer} implementing {@link SpriteBatch} or
-	 * {@link SpriteBatchLowMemoryVBO}
+	 * Are the {@link TMXLayer} implementing {@link HighPerformanceSpriteBatchVertexBufferObject} or
+	 * {@link LowMemorySpriteBatchVertexBufferObject}
 	 * 
-	 * @return <code>true</code> if {@link SpriteBatchLowMemoryVBO} is in use,
-	 *         <code>false</code> for {@link SpriteBatch}
+	 * @return <code>true</code> if {@link LowMemorySpriteBatchVertexBufferObject} is in use,
+	 *         <code>false</code> for {@link HighPerformanceSpriteBatchVertexBufferObject}
 	 */
 	public boolean getUseLowMemoryVBO() {
 		return this.mUseLowMemoryVBO;

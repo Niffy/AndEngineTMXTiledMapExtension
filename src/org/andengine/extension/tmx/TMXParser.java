@@ -3,6 +3,9 @@ package org.andengine.extension.tmx;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.andengine.entity.sprite.batch.SpriteBatch;
+import org.andengine.entity.sprite.batch.vbo.HighPerformanceSpriteBatchVertexBufferObject;
+import org.andengine.entity.sprite.batch.vbo.LowMemorySpriteBatchVertexBufferObject;
 import org.andengine.extension.tmx.TMXLoader.ITMXTilePropertiesListener;
 import org.andengine.extension.tmx.util.TMXTileSetSourceManager;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
@@ -10,6 +13,7 @@ import org.andengine.extension.tmx.util.exception.TMXParseException;
 import org.andengine.extension.tmx.util.exception.TSXLoadException;
 import org.andengine.opengl.texture.TextureManager;
 import org.andengine.opengl.texture.TextureOptions;
+import org.andengine.opengl.vbo.DrawType;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.util.SAXUtils;
 import org.andengine.util.debug.Debug;
@@ -188,10 +192,13 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			this.mInLayer = true;
 			if(this.mUseLowMemoryVBO){
 				//Use a TMXLayer implementing low memory vbo sprite batch
-				this.mTMXTiledMap.addTMXLayer(new TMXLayerLowMemorySpriteBatch(this.mTMXTiledMap, pAttributes, this.mVertexBufferObjectManager, this.mAllocateTiles));
+				int capacity = this.getLayerCapacity(pAttributes);
+				LowMemorySpriteBatchVertexBufferObject spriteBatchVBO = new LowMemorySpriteBatchVertexBufferObject(this.mVertexBufferObjectManager, capacity* SpriteBatch.SPRITE_SIZE, DrawType.STATIC, true, SpriteBatch.VERTEXBUFFEROBJECTATTRIBUTES_DEFAULT);
+				this.mTMXTiledMap.addTMXLayer(new TMXLayer(this.mTMXTiledMap, pAttributes, capacity, spriteBatchVBO, this.mVertexBufferObjectManager, this.mAllocateTiles));
 			}else{
-				//Use a TMXLayer implementing high performance sprite batch
-				this.mTMXTiledMap.addTMXLayer(new TMXLayerHighPerformanceSpriteBatch(this.mTMXTiledMap, pAttributes, this.mVertexBufferObjectManager, this.mAllocateTiles));
+				int capacity = this.getLayerCapacity(pAttributes);
+				HighPerformanceSpriteBatchVertexBufferObject spriteBatchVBO = new HighPerformanceSpriteBatchVertexBufferObject(this.mVertexBufferObjectManager, capacity* SpriteBatch.SPRITE_SIZE, DrawType.STATIC, true, SpriteBatch.VERTEXBUFFEROBJECTATTRIBUTES_DEFAULT);
+				this.mTMXTiledMap.addTMXLayer(new TMXLayer(this.mTMXTiledMap, pAttributes, capacity, spriteBatchVBO, this.mVertexBufferObjectManager, this.mAllocateTiles));
 			}
 		} else if(pLocalName.equals(TMXConstants.TAG_DATA)){
 			this.mInData = true;
@@ -281,7 +288,10 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	// ===========================================================
 	// Methods
 	// ===========================================================
-
+	private int getLayerCapacity(final Attributes pAttributes){
+		int capacity = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_WIDTH) * SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_HEIGHT);
+		return capacity;
+	}
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================
