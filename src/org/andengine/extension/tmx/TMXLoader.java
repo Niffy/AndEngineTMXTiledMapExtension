@@ -46,6 +46,7 @@ public class TMXLoader {
 	private TMXTileSetSourceManager mTMXTileSetSourceManager;
 	private boolean mUseLowMemoryVBO = true;
 	private boolean mAllocateTiles = true;
+	private boolean mStoreGID = false;
 
 	// ===========================================================
 	// Constructors
@@ -176,7 +177,20 @@ public class TMXLoader {
 	public boolean getAllocateTiles() {
 		return this.mAllocateTiles;
 	}
-
+	/**
+	 * Set if the TMXLayers should store the global tile id, (Which tile it is from the tileset)
+	 * @param pStoreGID {@link Boolean} <code>true</code> to store, <code>false</code> not to store
+	 */
+	public void setStoreGID(boolean pStoreGID){
+		this.mStoreGID = pStoreGID;
+	}
+	/**
+	 * Are the global tile ID's being stored.
+	 * @return {@link Boolean} <code>true</code> if they are, <code>false</code> if they're not
+	 */
+	public boolean getStoreGID(){
+		return this.mStoreGID;
+	}
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================

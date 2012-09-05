@@ -57,6 +57,11 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	private final int mTileColumns;
 	private final int mTileRows;
 	protected final TMXTile[][] mTMXTiles;
+	/**
+	 * The global tile ID for each tile. <br>
+	 * Declared as new int[{@link #mTileRows} ][{@link #mTileColumns}]
+	 */
+	protected int[][] mTileGID;
 
 	private int mTilesAdded;
 	private final int mGlobalTileIDsExpected;
@@ -95,6 +100,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * Are we allocating TMXTiles when creating a layer
 	 */
 	private boolean mAllocateTMXTiles = false;
+	private boolean mStoreGID = false;
 
 	// ===========================================================
 	// Constructors
@@ -120,6 +126,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.mAllocateTMXTiles = false;
 			this.mTMXTiles = null;
 		}
+		this.mTileGID = new int[this.mTileRows][this.mTileColumns];
+		this.mStoreGID = this.mTMXTiledMap.getStoreGID();
 	
 		this.mWidth = pTMXTiledMap.getTileWidth() * this.mTileColumns;
 		this.mHeight = pTMXTiledMap.getTileHeight() * this.mTileRows;
@@ -169,7 +177,9 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.mAllocateTMXTiles = false;
 			this.mTMXTiles = null;
 		}
-	
+		this.mTileGID = new int[this.mTileRows][this.mTileColumns];
+		this.mStoreGID = this.mTMXTiledMap.getStoreGID();
+		
 		this.mWidth = pTMXTiledMap.getTileWidth() * this.mTileColumns;
 		this.mHeight = pTMXTiledMap.getTileHeight() * this.mTileRows;
 
@@ -215,7 +225,9 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.mAllocateTMXTiles = false;
 			this.mTMXTiles = null;
 		}
-
+		this.mTileGID = new int[this.mTileRows][this.mTileColumns];
+		this.mStoreGID = this.mTMXTiledMap.getStoreGID();
+		
 		this.mWidth = pTMXTiledMap.getTileWidth() * this.mTileColumns;
 		this.mHeight = pTMXTiledMap.getTileHeight() * this.mTileRows;
 
@@ -554,6 +566,14 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		return new float[] { isoX, isoY };
 	}
 	
+	/**
+	 * Get the row and column at the given touch location. <br>
+	 * Derived from {@link #getTMXTileAtIsometricAlternative(float[])}
+	 * @param pTouch {@link Float} array of touch coordinates as they are or after using {@link #convertLocalToSceneCoordinates(float[])}
+	 * @return {@link Integer} array. <br>
+	 * <b>Element[0]:</b> Tile Row <br>
+	 * <b>Element[1}</b> Tile Column
+	 */
 	public int[] getRowColAtIsometric(final float[] pTouch){
 		float pX = pTouch[0];
 		float pY = pTouch[1];
@@ -569,6 +589,27 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			return null;
 		}
 		return new int[] { (int) tileRow, (int) tileColumn };
+	}
+	
+	/**
+	 * Get the global tile id for a give tile location.
+	 * @param pTileRow {@link Integer} of tile row.
+	 * @param pTileColumn {@link Integer} of tile column.
+	 * @return {@link Integer} of global tile ID, 
+	 * <code>-1</code> if out of bounds. <code>-2</code> if global tile id's aren't stored
+	 */
+	public int getTileGlobalID(int pTileRow, int pTileColumn){
+		if(pTileColumn < 0 || pTileColumn > this.mTileColumns) {
+			return -1;
+		}
+		if(pTileRow < 0 || pTileRow > this.mTileRows) {
+			return -1;
+		}
+		if(this.mStoreGID){
+			return this.mTileGID[pTileRow][pTileColumn];
+		}else{
+			return -2;
+		}
 	}
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
@@ -727,9 +768,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			if(pTMXTilePropertyListener != null) {
 				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap.getTMXTileProperties(pGlobalTileID);
 				if(tmxTileProperties != null) {
-					//TODO
-					//pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
-					//Log.i(TAG, "tmxTileProperties created, size " + tmxTileProperties.size());
+					pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
 				}
 			}
 		}
@@ -776,8 +815,9 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		final int tileWidth = this.mTMXTiledMap.getTileWidth();
 		final int column = this.mTilesAdded % tilesHorizontal;
 		final int row = this.mTilesAdded / tilesHorizontal;
+		TMXTile[][] tmxTiles = null;
 		if(this.mAllocateTMXTiles){
-			final TMXTile[][] tmxTiles = this.mTMXTiles;
+			tmxTiles = this.mTMXTiles;
 		}
 		
 		final ITextureRegion tmxTileTextureRegion;
@@ -799,8 +839,13 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 				}
 			}
 		}		
+		TMXTile tmxTile = null;
 		if(this.mAllocateTMXTiles){
-			final TMXTile tmxTile = new TMXTile(this.mTMXTiledMap.getOrientation(), pGlobalTileID, this.mTilesAdded, column, row, tileWidth, tileHeight, tmxTileTextureRegion);
+			tmxTile = new TMXTile(this.mTMXTiledMap.getOrientation(), pGlobalTileID, this.mTilesAdded, column, row, tileWidth, tileHeight, tmxTileTextureRegion);
+		}
+		
+		if(this.mStoreGID){
+			this.mTileGID[row][column] = pGlobalTileID; 
 		}
 		
 		//Get the offset for the tileset and the tileset size
@@ -839,21 +884,21 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		}
 		float tileXIso = xOffsetPos;
 		float tileYIso = yOffsetPos;
-		/*
-		tmxTile.setTileXIso(xOffsetPos);
-		tmxTile.setTileYIso(yOffsetPos);
-		*/
+		
+		if(this.mAllocateTMXTiles){
+			tmxTile.setTileXIso(xOffsetPos);
+			tmxTile.setTileYIso(yOffsetPos);
+		}
 		float xCentre = xRealIsoPos + this.mIsoHalfTileWidth;
 		float yCentre = yRealIsoPos + this.mIsoHalfTileHeight;
 		float tileXIsoC = xCentre;
 		float tileYIsoX = yCentre;
-		/*
-		tmxTile.setTileXIsoCentre(xCentre);
-		tmxTile.setTileYIsoCentre(yCentre);	
-		tmxTiles[row][column] = tmxTile;
-		
-		this.mTMXTiles[row][column] = tmxTile;
-		*/
+		if(this.mAllocateTMXTiles){
+			tmxTile.setTileXIsoCentre(xCentre);
+			tmxTile.setTileYIsoCentre(yCentre);	
+			tmxTiles[row][column] = tmxTile;
+			this.mTMXTiles[row][column] = tmxTile;
+		}
 		this.mAddedTilesOnRow++;
 		
 		if(this.mAddedTilesOnRow == this.mTMXTiledMap.getTileColumns()){
@@ -872,10 +917,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			if(pTMXTilePropertyListener != null) {
 				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap.getTMXTileProperties(pGlobalTileID);
 				if(tmxTileProperties != null) {
-					//pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
-					//TODO 
-					//pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, null, tmxTileProperties);
-					//Log.i(TAG, "tmxTileProperties created, size " + tmxTileProperties.size());
+					pTMXTilePropertyListener.onTMXTileWithPropertiesCreated(tmxTiledMap, this, tmxTile, tmxTileProperties);
 				}
 			}
 		}

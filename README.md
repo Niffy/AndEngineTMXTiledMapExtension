@@ -15,6 +15,7 @@ Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from 
  * Use a TMXTileSetSourceManager to manage TileSet image sources
  * Set if we allocate TMX tiles(on TMXLayers), helps to save memory if you don't want the overhead.
  * Set the TMXLayer on creation to use a LowMemorySpriteBatchVertexBufferObject or a HighPerformanceSpriteBatchVertexBufferObject
+ * Store the global tile id of each tile (Useful if not allocating tiles)
 
 ### How to use it
  * Exactly like you would before with the origin repo.
@@ -23,10 +24,11 @@ Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from 
  * To set the draw method call the TMXTiledMap method setIsometricDrawMethod
  * Set the map draw origin, in the load method. If you don't want one then use the values 0;
  * If loading multiple maps with the same tile set, then use a TMXTileSetSourceManager to reduce loading in the same image multiple times. You could probably even use this elsewhere!
- * To not allocate TMX Tiles use #setAllocateTiles(boolean pValue)
- * To use a LowMemorySpriteBatchVertexBufferObject call #setUseLowMemoryVBO(boolean pValue)
+ * To not allocate TMX Tiles use #setAllocateTiles(boolean pValue) on the TMXLoader
+ * To use a LowMemorySpriteBatchVertexBufferObject call #setUseLowMemoryVBO(boolean pValue) on the TMXLoader
  * If not allocating TMXTiles then use #getRowColAtIsometric(float[] pTouch) to get the row and column tile. 
  * If not allocating TMXTiles to get the centre of the tile use #getIsoTileCentreAt(final int pTileColumn, final int pTileRow)
+ * To store the tile global id, #setStoreGID(boolean pStoreGID) call on the TMXLoader. To get the id, on the TMXLayer call #getTileGlobalID(int pTileRow, int pTileColumn)
  
  ```java
 TMXTiledMap txMap;

@@ -83,6 +83,7 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	
 	private boolean mUseLowMemoryVBO = false;
 	private boolean mAllocateTiles = false;
+	private boolean mStoreGID = false;
 
 	// ===========================================================
 	// Constructors
@@ -117,6 +118,14 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 		this.mOriginX = pX;
 		this.mOriginY = pY;
 	}
+	
+	/**
+	 * Set if the TMXLayers should store the global tile id, (Which tile it is from the tileset)
+	 * @param pStoreGID {@link Boolean} <code>true</code> to store, <code>false</code> not to store
+	 */
+	public void setStoreGID(boolean pStoreGID){
+		this.mStoreGID = pStoreGID;
+	}
 
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
@@ -130,6 +139,7 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			this.mTMXTiledMap.setMapOrigin(this.mOriginX, this.mOriginY);
 			this.mTMXTiledMap.setAllocateTiles(this.mAllocateTiles);
 			this.mTMXTiledMap.setUseLowMemoryVBO(this.mUseLowMemoryVBO);
+			this.mTMXTiledMap.setStoreGID(this.mStoreGID);
 		} else if(pLocalName.equals(TMXConstants.TAG_TILESET)){
 			this.mInTileset = true;
 			final TMXTileSet tmxTileSet;
