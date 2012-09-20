@@ -265,6 +265,10 @@ public class TMXLoader {
 			 * Fixes #2 
 			 */
 			tmxParser.setMapOrigin(pMapOriginX, pMapOriginY);
+			/*
+			 * Fixes #3 
+			 */
+			tmxParser.setStoreGID(this.mStoreGID);
 			xr.setContentHandler(tmxParser);
 
 			xr.parse(new InputSource(new BufferedInputStream(pInputStream)));

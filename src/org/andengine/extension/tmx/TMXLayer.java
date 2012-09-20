@@ -599,10 +599,10 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * <code>-1</code> if out of bounds. <code>-2</code> if global tile id's aren't stored
 	 */
 	public int getTileGlobalID(int pTileRow, int pTileColumn){
-		if(pTileColumn < 0 || pTileColumn > this.mTileColumns) {
+		if(pTileColumn < 0 || pTileColumn >= this.mTileColumns) {
 			return -1;
 		}
-		if(pTileRow < 0 || pTileRow > this.mTileRows) {
+		if(pTileRow < 0 || pTileRow >= this.mTileRows) {
 			return -1;
 		}
 		if(this.mStoreGID){
