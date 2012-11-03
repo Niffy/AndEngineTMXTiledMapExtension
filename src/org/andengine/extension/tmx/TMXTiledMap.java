@@ -1,5 +1,6 @@
 package org.andengine.extension.tmx;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import org.andengine.entity.sprite.batch.vbo.HighPerformanceSpriteBatchVertexBufferObject;
@@ -127,6 +128,15 @@ public class TMXTiledMap implements TMXConstants {
 
 	public final int getTileHeight() {
 		return this.mTileHeight;
+	}
+	
+	/**
+	 * Get the tile dimension in use.
+	 * 
+	 * @return {@link Integer} {@link Array} <br><b>Element[0]:</b><i>Width</i> <br><b>Element[1]:</b> <i>Height</i>
+	 */
+	public final int[] getTileDimensions(){
+		return new int[] {this.getTileWidth(), this.getTileHeight() };
 	}
 
 	void addTMXTileSet(final TMXTileSet pTMXTileSet) {
@@ -309,6 +319,28 @@ public class TMXTiledMap implements TMXConstants {
 		return this.mStoreGID;
 	}
 	
+	/**
+	 * Is the map isometric? 
+	 * @return {@link Boolean} <code>true</code> if isometric. <code>false</code> if not.
+	 */
+	public boolean isIsometric(){
+		if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	/**
+	 * Is the map orthogonal
+	 * @return {@link Boolean} <code>true</code> if orthogonal. <code>false</code> if not.
+	 */
+	public boolean isOrthogonal(){
+		if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================

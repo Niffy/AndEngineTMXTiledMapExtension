@@ -24,8 +24,8 @@ public class TMXObject implements TMXConstants {
 	// Fields
 	// ===========================================================
 
-	private final String mName;
-	private final String mType;
+	private String mName;
+	private String mType;
 	private final int mX;
 	private final int mY;
 	private final int mWidth;
@@ -78,11 +78,18 @@ public class TMXObject implements TMXConstants {
 	// ===========================================================
 	// Getter & Setter
 	// ===========================================================
-
+	public void setName(final String pName){
+		this.mName = pName;
+	}
+	
 	public String getName() {
 		return this.mName;
 	}
 
+	public void setType(final String pType){
+		this.mType = pType;
+	}
+	
 	/**
 	 * This relates to a String in the XML of an object, there is not always
 	 * a type listed for items such as a normal object or tile object.

@@ -112,6 +112,9 @@ public class TMXObjectGroup implements TMXConstants {
 		}
 	}
 	
+	public int getSize(){
+		return this.mTMXObjects.size();
+	}
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================
