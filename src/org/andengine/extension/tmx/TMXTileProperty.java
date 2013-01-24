@@ -25,6 +25,10 @@ public class TMXTileProperty extends TMXProperty {
 	public TMXTileProperty(final Attributes pAttributes) {
 		super(pAttributes);
 	}
+	
+	public TMXTileProperty(final TMXTileProperty pTMXTileProperty){
+		super(pTMXTileProperty);
+	}
 
 	// ===========================================================
 	// Getter & Setter

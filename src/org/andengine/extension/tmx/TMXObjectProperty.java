@@ -25,6 +25,14 @@ public class TMXObjectProperty extends TMXProperty {
 	public TMXObjectProperty(final Attributes pAttributes) {
 		super(pAttributes);
 	}
+	
+	/**
+	 * Copy constructor
+	 * @param pTMXObjectProperty {@link TMXObjectProperty} to copy
+	 */
+	public TMXObjectProperty(final TMXObjectProperty pTMXObjectProperty){
+		super(pTMXObjectProperty);
+	}
 
 	// ===========================================================
 	// Getter & Setter

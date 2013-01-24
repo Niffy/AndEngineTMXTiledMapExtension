@@ -2,6 +2,7 @@ package org.andengine.extension.tmx;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.extension.tmx.util.constants.TMXObjectType;
@@ -39,6 +40,23 @@ public class TMXObjectGroup implements TMXConstants {
 		this.mName = pAttributes.getValue("", TMXConstants.TAG_OBJECTGROUP_ATTRIBUTE_NAME);
 		this.mWidth = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_OBJECTGROUP_ATTRIBUTE_WIDTH);
 		this.mHeight = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_OBJECTGROUP_ATTRIBUTE_HEIGHT);
+	}
+	
+	/**
+	 * Copy Constructor
+	 * @param pTMXObjectGroup {@link TMXObjectGroup} to copy
+	 */
+	public TMXObjectGroup(final TMXObjectGroup pTMXObjectGroup){
+		this.mName = new String(pTMXObjectGroup.getName());
+		this.mWidth = pTMXObjectGroup.getWidth();
+		this.mHeight = pTMXObjectGroup.getHeight();
+		for (TMXObject orignalObject : pTMXObjectGroup.getTMXObjects()) {
+			this.mTMXObjects.add(new TMXObject(orignalObject));
+		}
+		for (TMXObjectGroupProperty originalTmxObjectGroupProperty : pTMXObjectGroup.getTMXObjectGroupProperties()) {
+			this.mTMXObjectGroupProperties.add(new TMXObjectGroupProperty(originalTmxObjectGroupProperty));
+		}
+		this.mObjectType = pTMXObjectGroup.getObjectType();
 	}
 
 	// ===========================================================

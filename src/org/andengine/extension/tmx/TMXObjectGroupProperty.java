@@ -25,6 +25,10 @@ public class TMXObjectGroupProperty extends TMXProperty {
 	public TMXObjectGroupProperty(final Attributes pAttributes) {
 		super(pAttributes);
 	}
+	
+	public TMXObjectGroupProperty(final TMXObjectGroupProperty pTMXObjectGroupProperty){
+		super(pTMXObjectGroupProperty);
+	}
 
 	// ===========================================================
 	// Getter & Setter

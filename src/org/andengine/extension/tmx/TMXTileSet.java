@@ -1,5 +1,7 @@
 package org.andengine.extension.tmx;
 
+import java.util.ArrayList;
+
 import org.andengine.extension.tmx.util.TMXTileSetSourceManager;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.extension.tmx.util.exception.TMXParseException;
@@ -56,7 +58,11 @@ public class TMXTileSet implements TMXConstants {
 	private int mOffsetY = 0;
 
 	private final SparseArray<TMXProperties<TMXTileProperty>> mTMXTileProperties = new SparseArray<TMXProperties<TMXTileProperty>>();
-
+	/**
+	 * Since there is no way of retriving the key set from a SparseArray we have
+	 * to maintain our own, useful if we want to copy!
+	 */
+	private ArrayList<Integer> mTMXTilePropertiesKeys = new ArrayList<Integer>();
 	private final TMXTileSetSourceManager mTMXTileSetSourceManager;
 
 	// ===========================================================
@@ -102,6 +108,48 @@ public class TMXTileSet implements TMXConstants {
 		this.mMargin = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_TILESET_ATTRIBUTE_MARGIN, 0);
 		this.mTextureOptions = pTextureOptions;
 		this.mTMXTileSetSourceManager = pTMXTileSetSourceManager;
+	}
+
+	/**
+	 * A copy constructor for a TMXTileSet, currently cannot copy textures,
+	 * texture options and TMXTileSetSourceManager.
+	 * 
+	 * @param pTMXTileSet
+	 *            {@link TMXTileSet} to copy
+	 */
+	public TMXTileSet(final TMXTileSet pTMXTileSet) {
+		this.mFirstGlobalTileID = pTMXTileSet.getFirstGlobalTileID();
+		this.mName = new String(pTMXTileSet.getName());
+		this.mTileWidth = pTMXTileSet.getTileWidth();
+		this.mTileHeight = pTMXTileSet.getTileHeight();
+		this.mImageSource = new String(pTMXTileSet.getImageSource());
+		this.mTexture = null; // no copy supported
+		this.mTextureOptions = null; // no copy supported
+		this.mTMXTileSetSourceManager = null; // no copy supported
+		this.mTilesHorizontal = pTMXTileSet.getTilesHorizontal();
+		this.mTilesVertical = pTMXTileSet.getTilesVertical();
+		this.mSpacing = pTMXTileSet.getSpacing();
+		this.mMargin = pTMXTileSet.getMargin();
+		this.mOffsetX = pTMXTileSet.getOffsetX();
+		this.mOffsetY = pTMXTileSet.getOffsetY();
+		this.mTMXTilePropertiesKeys = pTMXTileSet.getTMXTilePropertiesKeySet();
+		for (Integer key : this.mTMXTilePropertiesKeys) {
+			/*
+			 * TMXProperties is an array list which holds TMXTileProperty objects
+			 * First get the original properties for the current key
+			 * create a new properties array
+			 * Iterate the original properties and create a new TMXTileProperty from the current iteration element 
+			 * Add the new properties to the current object properties. 
+			 */
+			TMXProperties<TMXTileProperty> properties = pTMXTileSet.getTMXTilePropertiesFromGlobalTileID(key);
+			TMXProperties<TMXTileProperty> newProperties = new TMXProperties<TMXTileProperty>();
+			for (TMXTileProperty tmxTileProperty : properties) {
+				newProperties.add(new TMXTileProperty(tmxTileProperty));
+			}
+
+			this.mTMXTileProperties.put(key, newProperties);
+		}
+
 	}
 
 	// ===========================================================
@@ -217,26 +265,26 @@ public class TMXTileSet implements TMXConstants {
 			final Attributes pAttributes) throws TMXParseException {
 		this.mImageSource = pAttributes.getValue("", TMXConstants.TAG_IMAGE_ATTRIBUTE_SOURCE);
 		if (this.mTMXTileSetSourceManager != null) {
-			//Find the texture mapped to the image source
-			this.mTexture =  this.mTMXTileSetSourceManager.getTileSetTexture(this.mImageSource);
-			//Check texture is not null
-			if(this.mTexture == null){
-				//No mapping so read in
+			// Find the texture mapped to the image source
+			this.mTexture = this.mTMXTileSetSourceManager.getTileSetTexture(this.mImageSource);
+			// Check texture is not null
+			if (this.mTexture == null) {
+				// No mapping so read in
 				this.setImageSourceFromAttributes(pAssetManager, pTextureManager, pAttributes);
-			}else{
-				//Find the tiles horizontal and vertical sizes
+			} else {
+				// Find the tiles horizontal and vertical sizes
 				int[] foundSize = this.mTMXTileSetSourceManager.getTileSourceSizes(this.mImageSource);
-				if(foundSize == null){
-					//no sizes found so scrap the this process
+				if (foundSize == null) {
+					// no sizes found so scrap the this process
 					this.setImageSourceFromAttributes(pAssetManager, pTextureManager, pAttributes);
-				}else{
-					//Found sizes
+				} else {
+					// Found sizes
 					this.mTilesHorizontal = foundSize[0];
 					this.mTilesVertical = foundSize[1];
 				}
 			}
 		} else {
-			//Not using a texture manager so skip a lookup
+			// Not using a texture manager so skip a lookup
 			this.setImageSourceFromAttributes(pAssetManager, pTextureManager, pAttributes);
 		}
 	}
@@ -247,6 +295,24 @@ public class TMXTileSet implements TMXConstants {
 
 	public SparseArray<TMXProperties<TMXTileProperty>> getTMXTileProperties() {
 		return this.mTMXTileProperties;
+	}
+
+	public int getSpacing() {
+		return this.mSpacing;
+	}
+
+	public int getMargin() {
+		return this.mMargin;
+	}
+
+	/**
+	 * Since a {@link SparseArray} has no useful methods for iteration, we
+	 * maintain a keyset in an {@link ArrayList} of {@link Integer}.
+	 * 
+	 * @return {@link ArrayList} of {@link Integer} of keys
+	 */
+	public ArrayList<Integer> getTMXTilePropertiesKeySet() {
+		return this.mTMXTilePropertiesKeys;
 	}
 
 	// ===========================================================
@@ -263,34 +329,49 @@ public class TMXTileSet implements TMXConstants {
 	 * @param pAttributes
 	 * @throws TMXParseException
 	 */
-	private void setImageSourceFromAttributes(final AssetManager pAssetManager,
-			final TextureManager pTextureManager, final Attributes pAttributes) throws TMXParseException {
-		final AssetBitmapTextureAtlasSource assetBitmapTextureAtlasSource = AssetBitmapTextureAtlasSource.create(pAssetManager, this.mImageSource);
-		this.mTilesHorizontal = TMXTileSet.determineCount(assetBitmapTextureAtlasSource.getTextureWidth(), this.mTileWidth, this.mMargin, this.mSpacing);
-		this.mTilesVertical = TMXTileSet.determineCount(assetBitmapTextureAtlasSource.getTextureHeight(), this.mTileHeight, this.mMargin, this.mSpacing);
-		final BitmapTextureAtlas bitmapTextureAtlas = new BitmapTextureAtlas(pTextureManager, assetBitmapTextureAtlasSource.getTextureWidth(), assetBitmapTextureAtlasSource.getTextureHeight(), BitmapTextureFormat.RGBA_8888, this.mTextureOptions); // TODO Make TextureFormat variable
+	private void setImageSourceFromAttributes(final AssetManager pAssetManager, final TextureManager pTextureManager,
+			final Attributes pAttributes) throws TMXParseException {
+		final AssetBitmapTextureAtlasSource assetBitmapTextureAtlasSource = AssetBitmapTextureAtlasSource.create(
+				pAssetManager, this.mImageSource);
+		this.mTilesHorizontal = TMXTileSet.determineCount(assetBitmapTextureAtlasSource.getTextureWidth(),
+				this.mTileWidth, this.mMargin, this.mSpacing);
+		this.mTilesVertical = TMXTileSet.determineCount(assetBitmapTextureAtlasSource.getTextureHeight(),
+				this.mTileHeight, this.mMargin, this.mSpacing);
+		final BitmapTextureAtlas bitmapTextureAtlas = new BitmapTextureAtlas(pTextureManager,
+				assetBitmapTextureAtlasSource.getTextureWidth(), assetBitmapTextureAtlasSource.getTextureHeight(),
+				BitmapTextureFormat.RGBA_8888, this.mTextureOptions); // TODO
+																		// Make
+																		// TextureFormat
+																		// variable
 
-		final String transparentColor = SAXUtils.getAttribute(pAttributes, TMXConstants.TAG_IMAGE_ATTRIBUTE_TRANS, null);
-		if(transparentColor == null) {
-			BitmapTextureAtlasTextureRegionFactory.createFromSource(bitmapTextureAtlas, assetBitmapTextureAtlasSource, 0, 0);
+		final String transparentColor = SAXUtils
+				.getAttribute(pAttributes, TMXConstants.TAG_IMAGE_ATTRIBUTE_TRANS, null);
+		if (transparentColor == null) {
+			BitmapTextureAtlasTextureRegionFactory.createFromSource(bitmapTextureAtlas, assetBitmapTextureAtlasSource,
+					0, 0);
 		} else {
-			try{
-				final int color = Color.parseColor((transparentColor.charAt(0) == '#') ? transparentColor : "#" + transparentColor);
-				BitmapTextureAtlasTextureRegionFactory.createFromSource(bitmapTextureAtlas, new ColorKeyBitmapTextureAtlasSourceDecorator(assetBitmapTextureAtlasSource, RectangleBitmapTextureAtlasSourceDecoratorShape.getDefaultInstance(), color), 0, 0);
+			try {
+				final int color = Color.parseColor((transparentColor.charAt(0) == '#') ? transparentColor : "#"
+						+ transparentColor);
+				BitmapTextureAtlasTextureRegionFactory.createFromSource(bitmapTextureAtlas,
+						new ColorKeyBitmapTextureAtlasSourceDecorator(assetBitmapTextureAtlasSource,
+								RectangleBitmapTextureAtlasSourceDecoratorShape.getDefaultInstance(), color), 0, 0);
 			} catch (final IllegalArgumentException e) {
-				throw new TMXParseException("Illegal value: '" + transparentColor + "' for attribute 'trans' supplied!", e);
+				throw new TMXParseException(
+						"Illegal value: '" + transparentColor + "' for attribute 'trans' supplied!", e);
 			}
 		}
 		/*
 		 * Check we're using a manager, if so load in the texture and then map the text to source.
 		 */
-		if(this.mTMXTileSetSourceManager != null){
+		if (this.mTMXTileSetSourceManager != null) {
 			this.mTexture = bitmapTextureAtlas;
 			this.mTexture.load();
 			this.mTMXTileSetSourceManager.addTileSetTexture(this.mImageSource, bitmapTextureAtlas);
-			this.mTMXTileSetSourceManager.addTileSourcesSize(this.mImageSource, new int[] { this.mTilesHorizontal, this.mTilesHorizontal});
-		}else{
-			//No manager so load
+			this.mTMXTileSetSourceManager.addTileSourcesSize(this.mImageSource, new int[] { this.mTilesHorizontal,
+					this.mTilesHorizontal });
+		} else {
+			// No manager so load
 			this.mTexture = bitmapTextureAtlas;
 			this.mTexture.load();
 		}
@@ -309,6 +390,7 @@ public class TMXTileSet implements TMXConstants {
 			final TMXProperties<TMXTileProperty> newProperties = new TMXProperties<TMXTileProperty>();
 			newProperties.add(pTMXTileProperty);
 			this.mTMXTileProperties.put(pLocalTileID, newProperties);
+			this.mTMXTilePropertiesKeys.add(pLocalTileID);
 		}
 	}
 

@@ -55,6 +55,28 @@ public class TMXObject implements TMXConstants {
 			this.mObjectType = TMXObjectType.TILEOBJECT;
 		}
 	}
+	
+	/**
+	 * Copy constructor
+	 * @param pTMXObject {@link TMXObject} to copy.
+	 */
+	public TMXObject(final TMXObject pTMXObject){
+		this.mName = new String(pTMXObject.getName());
+		this.mType = new String(pTMXObject.getType());
+		this.mX = pTMXObject.getX();
+		this.mY = pTMXObject.getY();
+		this.mWidth = pTMXObject.getWidth();
+		this.mHeight = pTMXObject.getHeight();
+		this.mGID = pTMXObject.getGID();
+		this.mObjectType = pTMXObject.getObjectType();
+		this.mPolygon_points = pTMXObject.getPolygonPoints();
+		this.mPolyline_points = pTMXObject.getPolylinePoints();
+		TMXProperties<TMXObjectProperty> oldTMXObjectProperties = pTMXObject.getTMXObjectProperties();
+		for (TMXObjectProperty tmxObjectProperty : oldTMXObjectProperties) {
+			this.mTMXObjectProperties.add(new TMXObjectProperty(tmxObjectProperty));
+		}
+		
+	}
 
 	/**
 	 * Add a polygon to the object.

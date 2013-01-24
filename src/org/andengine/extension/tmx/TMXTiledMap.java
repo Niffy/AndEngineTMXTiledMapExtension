@@ -51,6 +51,7 @@ public class TMXTiledMap implements TMXConstants {
 	 * <i>element[3]</i> Tile size height
 	 */
 	private final SparseArray<int[]> mGlobalTileIDMultiCache = new SparseArray<int[]>();
+	
 	private final TMXProperties<TMXTiledMapProperty> mTMXTiledMapProperties = new TMXProperties<TMXTiledMapProperty>();
 	/**
 	 * Map drawing origin on the X axis. Isometric support only
@@ -64,7 +65,7 @@ public class TMXTiledMap implements TMXConstants {
 	private boolean mUseLowMemoryVBO = true;
 	private boolean mAllocateTiles = true;
 	private boolean mStoreGID = false;
-	
+
 	// ===========================================================
 	// Constructors
 	// ===========================================================
@@ -84,6 +85,41 @@ public class TMXTiledMap implements TMXConstants {
 		this.mTilesRows = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_MAP_ATTRIBUTE_HEIGHT);
 		this.mTileWidth = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_MAP_ATTRIBUTE_TILEWIDTH);
 		this.mTileHeight = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_MAP_ATTRIBUTE_TILEHEIGHT);
+	}
+
+	/**
+	 * A constructor to copy a {@link TMXTiledMap}. Things such as textures
+	 * cannot currently be copied, the same applies to {@link TMXTiledMap} caches.
+	 * 
+	 * @param pTMXTiledMap
+	 *            {@link TMXTiledMap} to copy
+	 * @param pDeepCopyTextures
+	 *            {@link Boolean} Should we attempted to copy textures? <b>In some areas this is not possible</b>
+	 */
+	public TMXTiledMap(final TMXTiledMap pTMXTiledMap, final boolean pDeepCopyTextures) {
+		this.mOrientation = new String(pTMXTiledMap.getOrientation());
+		this.mTileColumns = pTMXTiledMap.getTileColumns();
+		this.mTilesRows = pTMXTiledMap.getTileRows();
+		this.mTileWidth = pTMXTiledMap.getTileWidth();
+		this.mTileHeight = pTMXTiledMap.getTileHeight();
+		this.mUseLowMemoryVBO = pTMXTiledMap.getUseLowMemoryVBO();
+		this.mAllocateTiles = pTMXTiledMap.getAllocateTiles();
+		this.mStoreGID = pTMXTiledMap.getStoreGID();
+		this.mOriginX = pTMXTiledMap.getMapOriginX();
+		this.mOriginY = pTMXTiledMap.getMapOriginY();
+		for (TMXTileSet orignalSet : pTMXTiledMap.getTMXTileSets()) {
+			this.mTMXTileSets.add(new TMXTileSet(orignalSet));
+		}
+		for(TMXLayer originalLayer : pTMXTiledMap.getTMXLayers()){
+			this.mTMXLayers.add(new TMXLayer(this, originalLayer, null, pDeepCopyTextures));
+		}
+		for (TMXObjectGroup originalTMXObjectGroup : pTMXTiledMap.getTMXObjectGroups()) {
+			this.mTMXObjectGroups.add(new TMXObjectGroup(originalTMXObjectGroup));
+		}
+		for (TMXTiledMapProperty originalTMXTiledMapProperty : pTMXTiledMap.getTMXTiledMapProperties()) {
+			this.mTMXTiledMapProperties.add(new TMXTiledMapProperty(originalTMXTiledMapProperty));
+		}
+		
 	}
 
 	// ===========================================================
@@ -129,14 +165,16 @@ public class TMXTiledMap implements TMXConstants {
 	public final int getTileHeight() {
 		return this.mTileHeight;
 	}
-	
+
 	/**
 	 * Get the tile dimension in use.
 	 * 
-	 * @return {@link Integer} {@link Array} <br><b>Element[0]:</b><i>Width</i> <br><b>Element[1]:</b> <i>Height</i>
+	 * @return {@link Integer} {@link Array} <br>
+	 *         <b>Element[0]:</b><i>Width</i> <br>
+	 *         <b>Element[1]:</b> <i>Height</i>
 	 */
-	public final int[] getTileDimensions(){
-		return new int[] {this.getTileWidth(), this.getTileHeight() };
+	public final int[] getTileDimensions() {
+		return new int[] { this.getTileWidth(), this.getTileHeight() };
 	}
 
 	void addTMXTileSet(final TMXTileSet pTMXTileSet) {
@@ -262,19 +300,23 @@ public class TMXTiledMap implements TMXConstants {
 	 * 
 	 * @param pValue
 	 *            {@link Boolean} <code>true</code> using a
-	 *            {@link LowMemorySpriteBatchVertexBufferObject} or <code>false</code> using
-	 *            the standard {@link HighPerformanceSpriteBatchVertexBufferObject}
+	 *            {@link LowMemorySpriteBatchVertexBufferObject} or
+	 *            <code>false</code> using the standard
+	 *            {@link HighPerformanceSpriteBatchVertexBufferObject}
 	 */
 	public void setUseLowMemoryVBO(boolean pValue) {
 		// this.mUseLowMemoryVBO = pValue;
 	}
 
 	/**
-	 * Were the {@link TMXLayer} implementing {@link LowMemorySpriteBatchVertexBufferObject} or
+	 * Were the {@link TMXLayer} implementing
+	 * {@link LowMemorySpriteBatchVertexBufferObject} or
 	 * {@link HighPerformanceSpriteBatchVertexBufferObject}
 	 * 
-	 * @return <code>true</code> if {@link LowMemorySpriteBatchVertexBufferObject} is in use,
-	 *         <code>false</code> for {@link HighPerformanceSpriteBatchVertexBufferObject}
+	 * @return <code>true</code> if
+	 *         {@link LowMemorySpriteBatchVertexBufferObject} is in use,
+	 *         <code>false</code> for
+	 *         {@link HighPerformanceSpriteBatchVertexBufferObject}
 	 */
 	public boolean getUseLowMemoryVBO() {
 		return this.mUseLowMemoryVBO;
@@ -303,44 +345,56 @@ public class TMXTiledMap implements TMXConstants {
 	}
 
 	/**
-	 * Set if the TMXLayers should store the global tile id, (Which tile it is from the tileset).
-	 * <br> <b>Note:</b> This is only useable when reading in a TMX Map.
-	 * @param pStoreGID {@link Boolean} <code>true</code> to store, <code>false</code> not to store
+	 * Set if the TMXLayers should store the global tile id, (Which tile it is
+	 * from the tileset). <br>
+	 * <b>Note:</b> This is only useable when reading in a TMX Map.
+	 * 
+	 * @param pStoreGID
+	 *            {@link Boolean} <code>true</code> to store, <code>false</code>
+	 *            not to store
 	 */
-	public void setStoreGID(boolean pStoreGID){
+	public void setStoreGID(boolean pStoreGID) {
 		this.mStoreGID = pStoreGID;
 	}
-	
+
 	/**
 	 * Are the global tile ID's being stored?
-	 * @return {@link Boolean} <code>true</code> if they are, <code>false</code> if they're not
+	 * 
+	 * @return {@link Boolean} <code>true</code> if they are, <code>false</code>
+	 *         if they're not
 	 */
-	public boolean getStoreGID(){
+	public boolean getStoreGID() {
 		return this.mStoreGID;
 	}
-	
+
 	/**
-	 * Is the map isometric? 
-	 * @return {@link Boolean} <code>true</code> if isometric. <code>false</code> if not.
+	 * Is the map isometric?
+	 * 
+	 * @return {@link Boolean} <code>true</code> if isometric.
+	 *         <code>false</code> if not.
 	 */
-	public boolean isIsometric(){
+	public boolean isIsometric() {
 		if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ISOMETRIC)) {
 			return true;
 		} else {
 			return false;
 		}
 	}
+
 	/**
 	 * Is the map orthogonal
-	 * @return {@link Boolean} <code>true</code> if orthogonal. <code>false</code> if not.
+	 * 
+	 * @return {@link Boolean} <code>true</code> if orthogonal.
+	 *         <code>false</code> if not.
 	 */
-	public boolean isOrthogonal(){
+	public boolean isOrthogonal() {
 		if (this.mOrientation.equals(TMXConstants.TAG_MAP_ATTRIBUTE_ORIENTATION_VALUE_ORTHOGONAL)) {
 			return true;
 		} else {
 			return false;
 		}
 	}
+
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================

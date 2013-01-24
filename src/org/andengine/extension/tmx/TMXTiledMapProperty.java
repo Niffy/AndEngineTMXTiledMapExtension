@@ -25,6 +25,14 @@ public class TMXTiledMapProperty extends TMXProperty {
 	public TMXTiledMapProperty(final Attributes pAttributes) {
 		super(pAttributes);
 	}
+	
+	/**
+	 * Copy constructor
+	 * @param pTMXTiledMapProperty Original {@link TMXTiledMapProperty} to copy
+	 */
+	public TMXTiledMapProperty(final TMXTiledMapProperty pTMXTiledMapProperty){
+		super(pTMXTiledMapProperty);
+	}
 
 	// ===========================================================
 	// Getter & Setter

@@ -30,6 +30,15 @@ public class TMXProperty implements TMXConstants {
 		this.mName = pAttributes.getValue("", TMXConstants.TAG_PROPERTY_ATTRIBUTE_NAME);
 		this.mValue = pAttributes.getValue("", TMXConstants.TAG_PROPERTY_ATTRIBUTE_VALUE);
 	}
+	
+	/**
+	 * Copy constructor
+	 * @param pTMXProperty {@link TMXProperty} to copy
+	 */
+	public TMXProperty(final TMXProperty pTMXProperty){
+		this.mName = new String(pTMXProperty.getName());
+		this.mValue = new String(pTMXProperty.getValue());
+	}
 
 	// ===========================================================
 	// Getter & Setter
