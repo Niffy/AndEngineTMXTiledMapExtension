@@ -95,8 +95,12 @@ public class TMXTiledMap implements TMXConstants {
 	 *            {@link TMXTiledMap} to copy
 	 * @param pDeepCopyTextures
 	 *            {@link Boolean} Should we attempted to copy textures? <b>In some areas this is not possible</b>
+	 * @throws Exception 
 	 */
-	public TMXTiledMap(final TMXTiledMap pTMXTiledMap, final boolean pDeepCopyTextures) {
+	public TMXTiledMap(final TMXTiledMap pTMXTiledMap, final boolean pDeepCopyTextures) throws Exception {
+		if(pTMXTiledMap == null){
+			throw new Exception("Passed TMXTiledmap to copy is null");
+		}
 		this.mOrientation = new String(pTMXTiledMap.getOrientation());
 		this.mTileColumns = pTMXTiledMap.getTileColumns();
 		this.mTilesRows = pTMXTiledMap.getTileRows();

@@ -69,8 +69,12 @@ public class TMXTile {
 	 * @param pDeepCopyTextures
 	 *            {@link Boolean} Should textures also be copied?
 	 *            <code>true</code> for copy, <code>false</code> for no copy.
+	 * @throws Exception If the passed {@link TMXTile} is null
 	 */
-	public TMXTile(final TMXTile pTMXTile, final boolean pDeepCopyTextures) {
+	public TMXTile(final TMXTile pTMXTile, final boolean pDeepCopyTextures) throws Exception {
+		if(pTMXTile == null){
+			throw new Exception("Passed TMXTile to copy is null");
+		}
 		this.mGlobalTileID = pTMXTile.getGlobalTileID();
 		this.mTileRow = pTMXTile.getTileRow();
 		this.mTileColumn = pTMXTile.getTileColumn();

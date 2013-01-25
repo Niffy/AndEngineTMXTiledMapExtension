@@ -286,22 +286,36 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * @param pTMXLayer
 	 *            {@link TMXLayer} to copy.
 	 * @param pVertexBufferObjectManager
-	 *            {@link VertexBufferObjectManager}, should be able to pass
-	 *            null if not required to attach to a scene.
-	 * @param pDeepCopyTextures {@link Boolean} Should we attempted to copy textures?
+	 *            {@link VertexBufferObjectManager}, should be able to pass null
+	 *            if not required to attach to a scene.
+	 * @param pDeepCopyTextures
+	 *            {@link Boolean} Should we attempted to copy textures?
+	 * @throws Exception
+	 *             IF the passed TMXLayer is null.
 	 */
 	public TMXLayer(final TMXTiledMap pTMXTiledMap, final TMXLayer pTMXLayer,
-			final VertexBufferObjectManager pVertexBufferObjectManager, final boolean pDeepCopyTextures) {
+			final VertexBufferObjectManager pVertexBufferObjectManager, final boolean pDeepCopyTextures)
+			throws Exception {
 		super(null, pTMXTiledMap.getTileWidth() * pTMXTiledMap.getTileHeight(), pVertexBufferObjectManager);
+
+		if (pTMXLayer == null) {
+			throw new Exception("The pased TMXLayer to copy is null");
+		}
+
 		this.mTMXTiledMap = pTMXTiledMap;
 		this.mName = new String(pTMXLayer.getName());
 		this.mTileColumns = pTMXLayer.getTileColumns();
 		this.mTileRows = pTMXLayer.getTileRows();
-		this.mTMXTiles = new TMXTile[this.mTileRows][this.mTileColumns];
-		for (int i = 0; i < this.mTileRows; i++) {
-			for (int j = 0; j < this.mTileColumns; j++) {
-				this.mTMXTiles[i][j] = new TMXTile(pTMXLayer.getTMXTile(j, i), pDeepCopyTextures);
+
+		if (pTMXLayer.getAllocateTiles()) {
+			this.mTMXTiles = new TMXTile[this.mTileRows][this.mTileColumns];
+			for (int i = 0; i < this.mTileRows; i++) {
+				for (int j = 0; j < this.mTileColumns; j++) {
+					this.mTMXTiles[i][j] = new TMXTile(pTMXLayer.getTMXTile(i, j), pDeepCopyTextures);
+				}
 			}
+		}else{
+			this.mTMXTiles = null;
 		}
 		this.mTileGID = pTMXLayer.getTMXTileGlobalIDs();
 		this.mTilesAdded = pTMXLayer.getTMXTilesAdded();
@@ -759,39 +773,39 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		return this.mGlobalTileIDsExpected;
 	}
 
-	public double getTileRatio(){
+	public double getTileRatio() {
 		return this.tileratio;
 	}
-	
+
 	/**
 	 * 
 	 * @see #mIsoHalfTileWidth
 	 */
-	public int getIsometricHalfTileWidth(){
+	public int getIsometricHalfTileWidth() {
 		return this.mIsoHalfTileWidth;
 	}
-	
+
 	/**
 	 * 
 	 * @see #mIsoHalfTileHeight
 	 */
-	public int getIsometricHalfTileHeight(){
+	public int getIsometricHalfTileHeight() {
 		return this.mIsoHalfTileHeight;
 	}
-	
+
 	/**
 	 * 
 	 * @see #mAddedRows
 	 */
-	public int getAddedRows(){
+	public int getAddedRows() {
 		return this.mAddedRows;
 	}
-	
+
 	/**
 	 * 
 	 * @see #mAddedTilesOnRow;
 	 */
-	public int getAddedTilesOnRow(){
+	public int getAddedTilesOnRow() {
 		return this.mAddedTilesOnRow;
 	}
 
@@ -800,18 +814,18 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * @see #DRAW_METHOD_ISOMETRIC
 	 * @see TMXIsometricConstants
 	 */
-	public int getIsometricDrawMethod(){
+	public int getIsometricDrawMethod() {
 		return this.DRAW_METHOD_ISOMETRIC;
 	}
-	
+
 	/**
 	 * 
 	 * @see TMXTiledMap#getStoreGID()
 	 */
-	public boolean getStoreGID(){
+	public boolean getStoreGID() {
 		return this.mStoreGID;
 	}
-	
+
 	// ===========================================================
 	// Methods for/from SuperClass/Interfaces
 	// ===========================================================
