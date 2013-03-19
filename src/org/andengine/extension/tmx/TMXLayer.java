@@ -17,10 +17,10 @@ import org.andengine.opengl.util.GLState;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.util.SAXUtils;
 import org.andengine.util.StreamUtils;
+import org.andengine.util.adt.color.Color;
 import org.andengine.util.algorithm.collision.EntityCollisionChecker;
 import org.andengine.util.base64.Base64;
 import org.andengine.util.base64.Base64InputStream;
-import org.andengine.util.color.Color;
 import org.andengine.util.exception.AndEngineRuntimeException;
 import org.andengine.util.exception.MethodNotSupportedException;
 import org.andengine.util.math.MathUtils;
@@ -127,7 +127,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 * @return the {@link TMXTile} located at <code>pX/pY</code>.
 	 */
 	public TMXTile getTMXTileAt(final float pX, final float pY) {
-		final float[] localCoords = this.convertSceneToLocalCoordinates(pX, pY);
+		final float[] localCoords = this.convertSceneCoordinatesToLocalCoordinates(pX, pY);
 		final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
 
 		final int tileColumn = (int)(localCoords[SpriteBatch.VERTEX_INDEX_X] / tmxTiledMap.getTileWidth());
