@@ -25,6 +25,14 @@ public class TMXLayerProperty extends TMXProperty {
 	public TMXLayerProperty(final Attributes pAttributes) {
 		super(pAttributes);
 	}
+	
+	/**
+	 * Copy constructor
+	 * @param pTMXLayerProperty {@link TMXLayerProperty} to copy
+	 */
+	public TMXLayerProperty(final TMXLayerProperty pTMXLayerProperty){
+		super(pTMXLayerProperty);
+	}
 
 	// ===========================================================
 	// Getter & Setter

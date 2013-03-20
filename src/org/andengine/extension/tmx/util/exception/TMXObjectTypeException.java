@@ -1,15 +1,15 @@
-package org.andengine.extension.tmx;
-
-import org.xml.sax.Attributes;
+package org.andengine.extension.tmx.util.exception;
 
 /**
- * (c) 2010 Nicolas Gramlich
- * (c) 2011 Zynga Inc.
- * 
- * @author Nicolas Gramlich
- * @since 11:20:09 - 29.07.2010
+ * @author Paul Robinson
+ *
  */
-public class TMXTileProperty extends TMXProperty {
+public class TMXObjectTypeException extends TMXException {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5361868588447138209L;
 	// ===========================================================
 	// Constants
 	// ===========================================================
@@ -22,14 +22,22 @@ public class TMXTileProperty extends TMXProperty {
 	// Constructors
 	// ===========================================================
 
-	public TMXTileProperty(final Attributes pAttributes) {
-		super(pAttributes);
-	}
-	
-	public TMXTileProperty(final TMXTileProperty pTMXTileProperty){
-		super(pTMXTileProperty);
+	public TMXObjectTypeException() {
+		super();
 	}
 
+	public TMXObjectTypeException(final String pDetailMessage, final Throwable pThrowable) {
+		super(pDetailMessage, pThrowable);
+	}
+
+	public TMXObjectTypeException(final String pDetailMessage) {
+		super(pDetailMessage);
+	}
+
+	public TMXObjectTypeException(final Throwable pThrowable) {
+		super(pThrowable);
+	}
+	
 	// ===========================================================
 	// Getter & Setter
 	// ===========================================================

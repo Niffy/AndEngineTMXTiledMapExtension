@@ -3,12 +3,17 @@ package org.andengine.extension.tmx;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.andengine.entity.sprite.batch.SpriteBatch;
+import org.andengine.entity.sprite.batch.vbo.HighPerformanceSpriteBatchVertexBufferObject;
+import org.andengine.entity.sprite.batch.vbo.LowMemorySpriteBatchVertexBufferObject;
 import org.andengine.extension.tmx.TMXLoader.ITMXTilePropertiesListener;
+import org.andengine.extension.tmx.util.TMXTileSetSourceManager;
 import org.andengine.extension.tmx.util.constants.TMXConstants;
 import org.andengine.extension.tmx.util.exception.TMXParseException;
 import org.andengine.extension.tmx.util.exception.TSXLoadException;
 import org.andengine.opengl.texture.TextureManager;
 import org.andengine.opengl.texture.TextureOptions;
+import org.andengine.opengl.vbo.DrawType;
 import org.andengine.opengl.vbo.VertexBufferObjectManager;
 import org.andengine.util.SAXUtils;
 import org.andengine.util.debug.Debug;
@@ -39,7 +44,8 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	private final TextureOptions mTextureOptions;
 	private final VertexBufferObjectManager mVertexBufferObjectManager;
 	private final ITMXTilePropertiesListener mTMXTilePropertyListener;
-
+	private final TMXTileSetSourceManager mTMXTileSetSourceManager;
+	
 	private TMXTiledMap mTMXTiledMap;
 
 	private int mLastTileSetTileID;
@@ -61,17 +67,37 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	private boolean mInData;
 	private boolean mInObjectGroup;
 	private boolean mInObject;
+	@SuppressWarnings("unused")
+	private boolean mInObjectPolygon;
+	@SuppressWarnings("unused")
+	private boolean mInObjectPolyline;
+
+	/**
+	 *  Map drawing origin on the X axis. Isometric support only
+	 */
+	private float mOriginX = 0;
+	/**
+	 * Map drawing origin on the Y axis. Isometric support only
+	 */
+	private float mOriginY = 0;
+	
+	private boolean mUseLowMemoryVBO = false;
+	private boolean mAllocateTiles = false;
+	private boolean mStoreGID = false;
 
 	// ===========================================================
 	// Constructors
 	// ===========================================================
 
-	public TMXParser(final AssetManager pAssetManager, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener) {
+	public TMXParser(final AssetManager pAssetManager, final TextureManager pTextureManager, final TextureOptions pTextureOptions, final VertexBufferObjectManager pVertexBufferObjectManager, final ITMXTilePropertiesListener pTMXTilePropertyListener, TMXTileSetSourceManager pTMXTileSetSourceManager, boolean pUseLowMemoryVBO, boolean pAllocateTiles) {
 		this.mAssetManager = pAssetManager;
 		this.mTextureManager = pTextureManager;
 		this.mTextureOptions = pTextureOptions;
 		this.mVertexBufferObjectManager = pVertexBufferObjectManager;
 		this.mTMXTilePropertyListener = pTMXTilePropertyListener;
+		this.mTMXTileSetSourceManager = pTMXTileSetSourceManager;
+		this.mUseLowMemoryVBO = pUseLowMemoryVBO;
+		this.mAllocateTiles = pAllocateTiles;
 	}
 
 	// ===========================================================
@@ -80,6 +106,25 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 
 	TMXTiledMap getTMXTiledMap() {
 		return this.mTMXTiledMap;
+	}
+	/**
+	 * Set the origin of where the first tile should be drawn.
+	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.<br>
+	 * When we talk of origin point this is first tile rectangular shape it resides in top left corner.<br>
+	 * @param pX {@link Float} of the drawing origin point on the X axis
+	 * @param pY {@link Float} of the drawing origin point on the Y axis.
+	 */
+	public void setMapOrigin(final float pX, final float pY){
+		this.mOriginX = pX;
+		this.mOriginY = pY;
+	}
+	
+	/**
+	 * Set if the TMXLayers should store the global tile id, (Which tile it is from the tileset)
+	 * @param pStoreGID {@link Boolean} <code>true</code> to store, <code>false</code> not to store
+	 */
+	public void setStoreGID(boolean pStoreGID){
+		this.mStoreGID = pStoreGID;
 	}
 
 	// ===========================================================
@@ -91,16 +136,20 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 		if(pLocalName.equals(TMXConstants.TAG_MAP)){
 			this.mInMap = true;
 			this.mTMXTiledMap = new TMXTiledMap(pAttributes);
+			this.mTMXTiledMap.setMapOrigin(this.mOriginX, this.mOriginY);
+			this.mTMXTiledMap.setAllocateTiles(this.mAllocateTiles);
+			this.mTMXTiledMap.setUseLowMemoryVBO(this.mUseLowMemoryVBO);
+			this.mTMXTiledMap.setStoreGID(this.mStoreGID);
 		} else if(pLocalName.equals(TMXConstants.TAG_TILESET)){
 			this.mInTileset = true;
 			final TMXTileSet tmxTileSet;
 			final String tsxTileSetSource = pAttributes.getValue("", TMXConstants.TAG_TILESET_ATTRIBUTE_SOURCE);
 			if(tsxTileSetSource == null) {
-				tmxTileSet = new TMXTileSet(pAttributes, this.mTextureOptions);
+				tmxTileSet = new TMXTileSet(pAttributes, this.mTextureOptions, this.mTMXTileSetSourceManager);
 			} else {
 				try {
 					final int firstGlobalTileID = SAXUtils.getIntAttribute(pAttributes, TMXConstants.TAG_TILESET_ATTRIBUTE_FIRSTGID, 1);
-					final TSXLoader tsxLoader = new TSXLoader(this.mAssetManager, this.mTextureManager, this.mTextureOptions);
+					final TSXLoader tsxLoader = new TSXLoader(this.mAssetManager, this.mTextureManager, this.mTextureOptions, this.mTMXTileSetSourceManager);
 					tmxTileSet = tsxLoader.loadFromAsset(firstGlobalTileID, tsxTileSetSource);
 				} catch (final TSXLoadException e) {
 					throw new TMXParseException("Failed to load TMXTileSet from source: " + tsxTileSetSource, e);
@@ -151,7 +200,16 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			}
 		} else if(pLocalName.equals(TMXConstants.TAG_LAYER)){
 			this.mInLayer = true;
-			this.mTMXTiledMap.addTMXLayer(new TMXLayer(this.mTMXTiledMap, pAttributes, this.mVertexBufferObjectManager));
+			if(this.mUseLowMemoryVBO){
+				//Use a TMXLayer implementing low memory vbo sprite batch
+				int capacity = this.getLayerCapacity(pAttributes);
+				LowMemorySpriteBatchVertexBufferObject spriteBatchVBO = new LowMemorySpriteBatchVertexBufferObject(this.mVertexBufferObjectManager, capacity* SpriteBatch.SPRITE_SIZE, DrawType.STATIC, true, SpriteBatch.VERTEXBUFFEROBJECTATTRIBUTES_DEFAULT);
+				this.mTMXTiledMap.addTMXLayer(new TMXLayer(this.mTMXTiledMap, pAttributes, capacity, spriteBatchVBO, this.mVertexBufferObjectManager, this.mAllocateTiles));
+			}else{
+				int capacity = this.getLayerCapacity(pAttributes);
+				HighPerformanceSpriteBatchVertexBufferObject spriteBatchVBO = new HighPerformanceSpriteBatchVertexBufferObject(this.mVertexBufferObjectManager, capacity* SpriteBatch.SPRITE_SIZE, DrawType.STATIC, true, SpriteBatch.VERTEXBUFFEROBJECTATTRIBUTES_DEFAULT);
+				this.mTMXTiledMap.addTMXLayer(new TMXLayer(this.mTMXTiledMap, pAttributes, capacity, spriteBatchVBO, this.mVertexBufferObjectManager, this.mAllocateTiles));
+			}
 		} else if(pLocalName.equals(TMXConstants.TAG_DATA)){
 			this.mInData = true;
 			this.mDataEncoding = pAttributes.getValue("", TMXConstants.TAG_DATA_ATTRIBUTE_ENCODING);
@@ -163,6 +221,22 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			this.mInObject = true;
 			final ArrayList<TMXObjectGroup> tmxObjectGroups = this.mTMXTiledMap.getTMXObjectGroups();
 			tmxObjectGroups.get(tmxObjectGroups.size() - 1).addTMXObject(new TMXObject(pAttributes));
+		} else if (pLocalName.equals(TMXConstants.TAG_OBJECT_ATTRIBUTE_POLYGON)){
+			if(this.mInObject){
+				this.mInObjectPolygon = true;
+				final ArrayList<TMXObjectGroup> tmxObjectGroups = this.mTMXTiledMap.getTMXObjectGroups();
+				final ArrayList<TMXObject> tmxObjects = tmxObjectGroups.get(tmxObjectGroups.size() - 1).getTMXObjects();
+				TMXObject tmxObject = tmxObjects.get(tmxObjects.size() -1);
+				tmxObject.addPolygon(pAttributes);
+			}
+		} else if (pLocalName.equals(TMXConstants.TAG_OBJECT_ATTRIBUTE_POLYLINE)){
+			if(this.mInObject){
+				this.mInObjectPolyline = true;
+				final ArrayList<TMXObjectGroup> tmxObjectGroups = this.mTMXTiledMap.getTMXObjectGroups();
+				final ArrayList<TMXObject> tmxObjects = tmxObjectGroups.get(tmxObjectGroups.size() - 1).getTMXObjects();
+				TMXObject tmxObject = tmxObjects.get(tmxObjects.size() -1);
+				tmxObject.addPolyline(pAttributes);
+			}
 		} else {
 			throw new TMXParseException("Unexpected start tag: '" + pLocalName + "'.");
 		}
@@ -203,9 +277,16 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 			}
 			this.mInData = false;
 		} else if(pLocalName.equals(TMXConstants.TAG_OBJECTGROUP)){
+			//Going to calculate what the TMXObjectgroup consists of.
+			final ArrayList<TMXObjectGroup> tmxObjectGroups = this.mTMXTiledMap.getTMXObjectGroups();
+			tmxObjectGroups.get(tmxObjectGroups.size() - 1).checkType();
 			this.mInObjectGroup = false;
 		} else if(pLocalName.equals(TMXConstants.TAG_OBJECT)){
 			this.mInObject = false;
+		} else if (pLocalName.equals(TMXConstants.TAG_OBJECT_ATTRIBUTE_POLYGON)){
+			this.mInObjectPolygon = false;
+		} else if (pLocalName.equals(TMXConstants.TAG_OBJECT_ATTRIBUTE_POLYLINE)){
+			this.mInObjectPolyline = false;
 		} else {
 			throw new TMXParseException("Unexpected end tag: '" + pLocalName + "'.");
 		}
@@ -217,7 +298,10 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	// ===========================================================
 	// Methods
 	// ===========================================================
-
+	private int getLayerCapacity(final Attributes pAttributes){
+		int capacity = SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_WIDTH) * SAXUtils.getIntAttributeOrThrow(pAttributes, TMXConstants.TAG_LAYER_ATTRIBUTE_HEIGHT);
+		return capacity;
+	}
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================
