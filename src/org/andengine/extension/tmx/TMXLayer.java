@@ -176,11 +176,6 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public TMXLayer(final TMXTiledMap pTMXTiledMap, final Attributes pAttributes, final int pCapacity,
 			final ISpriteBatchVertexBufferObject pSpriteBatchVertexBufferObject,
 			final VertexBufferObjectManager pVertexBufferObjectManager, boolean pAllocateTiles) {
-		// super(null, SAXUtils.getIntAttributeOrThrow(pAttributes,
-		// TMXConstants.TAG_LAYER_ATTRIBUTE_WIDTH) *
-		// SAXUtils.getIntAttributeOrThrow(pAttributes,
-		// TMXConstants.TAG_LAYER_ATTRIBUTE_HEIGHT),
-		// pVertexBufferObjectManager);
 		super(0, 0, null, pCapacity, pSpriteBatchVertexBufferObject, PositionColorTextureCoordinatesShaderProgram
 				.getInstance());
 
@@ -542,11 +537,6 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 */
 		if (this.mAllocateTMXTiles) {
 			float[] localCoords = this.convertSceneCoordinatesToLocalCoordinates(pX, pY);
-			/*
-			 * Since we can now have a map origin, we subject the map origin from the X(localCoords[0]) and Y(localCoords[1]) coordinates 
-			 */
-			localCoords[0] -= this.mTMXTiledMap.getMapOriginX();
-			localCoords[1] -= this.mTMXTiledMap.getMapOriginY();
 			final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
 
 			float screenX = localCoords[SpriteBatch.VERTEX_INDEX_X] - this.mTMXTiledMap.getTileHeight();
@@ -601,8 +591,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		if (this.mAllocateTMXTiles) {
 			float pX = pTouch[0];
 			float pY = pTouch[1];
-			float screenX = pX - this.mTMXTiledMap.getMapOriginX() - this.mTMXTiledMap.getTileHeight();
-			float screenY = pY - this.mTMXTiledMap.getMapOriginY();
+			float screenX = pX - this.mTMXTiledMap.getTileHeight();
+			float screenY = pY;
 			float tileColumn = (screenY / this.mTMXTiledMap.getTileHeight())
 					+ (screenX / this.mTMXTiledMap.getTileWidth());
 			float tileRow = (screenY / this.mTMXTiledMap.getTileHeight())
@@ -680,8 +670,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 * Get the first tile iso X and Y for the given pTileRow
 		 * Then do the adding to get the required tile in pTileColumn.
 		 */
-		float firstTileXCen = this.mTMXTiledMap.getMapOriginX() + this.mIsoHalfTileWidth;
-		float firstTileYCen = this.mTMXTiledMap.getMapOriginY() + this.mIsoHalfTileHeight;
+		float firstTileXCen = + this.mIsoHalfTileWidth;
+		float firstTileYCen = + this.mIsoHalfTileHeight;
 		float isoX = 0;
 		float isoY = 0;
 
@@ -707,8 +697,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	public int[] getRowColAtIsometric(final float[] pTouch) {
 		float pX = pTouch[0];
 		float pY = pTouch[1];
-		float screenX = pX - this.mTMXTiledMap.getMapOriginX() - this.mTMXTiledMap.getTileHeight();
-		float screenY = pY - this.mTMXTiledMap.getMapOriginY();
+		float screenX = pX - this.mTMXTiledMap.getTileHeight();
+		float screenY = pY;
 		float tileColumn = (screenY / this.mTMXTiledMap.getTileHeight()) + (screenX / this.mTMXTiledMap.getTileWidth());
 		float tileRow = (screenY / this.mTMXTiledMap.getTileHeight()) - (screenX / this.mTMXTiledMap.getTileWidth());
 
@@ -901,6 +891,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 				final int globalTileID = this.readGlobalTileID(dataIn);
 				this.addTileByGlobalTileID(globalTileID, pTMXTilePropertyListener);
 			}
+			this.submit();
 		} finally {
 			StreamUtils.close(dataIn);
 		}
@@ -995,9 +986,6 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			this.setIndex(this.getSpriteBatchIndex(column, row));
 			this.drawWithoutChecks(tmxTileTextureRegion, tmxTile.getTileX(), tmxTile.getTileY(), tileWidth, tileHeight,
 					Color.WHITE_ABGR_PACKED_FLOAT);
-			this.submit(); // TODO Doesn't need to be called here, but should
-							// rather be called in a "init" step, when parsing
-							// the XML is complete.
 
 			// Notify the ITMXTilePropertiesListener if it exists.
 			if (pTMXTilePropertyListener != null) {
@@ -1116,11 +1104,11 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 * width matching the map tile height and width.
 		 * Now with the map origin taken into account.
 		 */
-		float xRealIsoPos = this.mTMXTiledMap.getMapOriginX() + (this.mAddedTilesOnRow * this.mIsoHalfTileWidth);
+		float xRealIsoPos = (this.mAddedTilesOnRow * this.mIsoHalfTileWidth);
 		xRealIsoPos = xRealIsoPos - (this.mAddedRows * this.mIsoHalfTileWidth);
-		float yRealIsoPos = this.mTMXTiledMap.getMapOriginY() + (this.mAddedTilesOnRow * this.mIsoHalfTileHeight);
-		yRealIsoPos = yRealIsoPos + (this.mAddedRows * this.mIsoHalfTileHeight);
-		float yOffsetPos = yRealIsoPos - ((offset_tilesize[3] - tileHeight) - offset_tilesize[1]);
+		float yRealIsoPos =- (this.mAddedTilesOnRow * this.mIsoHalfTileHeight);
+		yRealIsoPos = yRealIsoPos - (this.mAddedRows * this.mIsoHalfTileHeight);
+		float yOffsetPos = yRealIsoPos - ((offset_tilesize[3] - tileHeight) + offset_tilesize[1]);
 		/*
 		 * Fixes #1
 		 */
@@ -1138,9 +1126,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			tmxTile.setTileYIso(yOffsetPos);
 		}
 		float xCentre = xRealIsoPos + this.mIsoHalfTileWidth;
-		float yCentre = yRealIsoPos + this.mIsoHalfTileHeight;
-		float tileXIsoC = xCentre;
-		float tileYIsoX = yCentre;
+		float yCentre = yRealIsoPos - this.mIsoHalfTileHeight;
 		if (this.mAllocateTMXTiles) {
 			tmxTile.setTileXIsoCentre(xCentre);
 			tmxTile.setTileYIsoCentre(yCentre);
@@ -1176,7 +1162,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		}
 		this.mTilesAdded++;
 	}
-
+	
 	protected int getSpriteBatchIndex(final int pColumn, final int pRow) {
 		return pRow * this.mTileColumns + pColumn;
 	}
@@ -1407,8 +1393,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		final int tileHeight = this.mTMXTiledMap.getTileHeight();
 		// We also subtract the map origin, other wise culling takes place on
 		// screen
-		final float cameraMinX = pCamera.getXMin() - this.mTMXTiledMap.getMapOriginX();
-		final float cameraMinY = pCamera.getYMin() - this.mTMXTiledMap.getMapOriginY();
+		final float cameraMinX = pCamera.getXMin();
+		final float cameraMinY = pCamera.getYMin();
 		final float cameraWidth = pCamera.getWidth();
 		final float cameraHeight = pCamera.getHeight();
 

@@ -71,15 +71,6 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	private boolean mInObjectPolygon;
 	@SuppressWarnings("unused")
 	private boolean mInObjectPolyline;
-
-	/**
-	 *  Map drawing origin on the X axis. Isometric support only
-	 */
-	private float mOriginX = 0;
-	/**
-	 * Map drawing origin on the Y axis. Isometric support only
-	 */
-	private float mOriginY = 0;
 	
 	private boolean mUseLowMemoryVBO = false;
 	private boolean mAllocateTiles = false;
@@ -107,17 +98,6 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 	TMXTiledMap getTMXTiledMap() {
 		return this.mTMXTiledMap;
 	}
-	/**
-	 * Set the origin of where the first tile should be drawn.
-	 * <br><b>NOTE</b> Currently only Isometric orientation is supported.<br>
-	 * When we talk of origin point this is first tile rectangular shape it resides in top left corner.<br>
-	 * @param pX {@link Float} of the drawing origin point on the X axis
-	 * @param pY {@link Float} of the drawing origin point on the Y axis.
-	 */
-	public void setMapOrigin(final float pX, final float pY){
-		this.mOriginX = pX;
-		this.mOriginY = pY;
-	}
 	
 	/**
 	 * Set if the TMXLayers should store the global tile id, (Which tile it is from the tileset)
@@ -136,7 +116,6 @@ public class TMXParser extends DefaultHandler implements TMXConstants {
 		if(pLocalName.equals(TMXConstants.TAG_MAP)){
 			this.mInMap = true;
 			this.mTMXTiledMap = new TMXTiledMap(pAttributes);
-			this.mTMXTiledMap.setMapOrigin(this.mOriginX, this.mOriginY);
 			this.mTMXTiledMap.setAllocateTiles(this.mAllocateTiles);
 			this.mTMXTiledMap.setUseLowMemoryVBO(this.mUseLowMemoryVBO);
 			this.mTMXTiledMap.setStoreGID(this.mStoreGID);

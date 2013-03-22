@@ -53,14 +53,6 @@ public class TMXTiledMap implements TMXConstants {
 	private final SparseArray<int[]> mGlobalTileIDMultiCache = new SparseArray<int[]>();
 	
 	private final TMXProperties<TMXTiledMapProperty> mTMXTiledMapProperties = new TMXProperties<TMXTiledMapProperty>();
-	/**
-	 * Map drawing origin on the X axis. Isometric support only
-	 */
-	private float mOriginX = 0;
-	/**
-	 * Map drawing origin on the Y axis. Isometric support only
-	 */
-	private float mOriginY = 0;
 
 	private boolean mUseLowMemoryVBO = true;
 	private boolean mAllocateTiles = true;
@@ -109,8 +101,6 @@ public class TMXTiledMap implements TMXConstants {
 		this.mUseLowMemoryVBO = pTMXTiledMap.getUseLowMemoryVBO();
 		this.mAllocateTiles = pTMXTiledMap.getAllocateTiles();
 		this.mStoreGID = pTMXTiledMap.getStoreGID();
-		this.mOriginX = pTMXTiledMap.getMapOriginX();
-		this.mOriginY = pTMXTiledMap.getMapOriginY();
 		for (TMXTileSet orignalSet : pTMXTiledMap.getTMXTileSets()) {
 			this.mTMXTileSets.add(new TMXTileSet(orignalSet));
 		}
@@ -248,53 +238,7 @@ public class TMXTiledMap implements TMXConstants {
 			}
 		}
 	}
-
-	/**
-	 * Set the origin of where the first tile should be drawn. <br>
-	 * <b>NOTE</b> Currently only Isometric orientation is supported.<br>
-	 * When we talk of origin point this is first tile rectangular shape it
-	 * resides in top left corner.<br>
-	 * <b>Important:</b> This should only be called by the TMXLoader, as the
-	 * origin should be set as we load in the map by calling
-	 * {@link TMXLoader#loadFromAsset(String, float, float)} or
-	 * {@link TMXLoader#load(java.io.InputStream, float, float)}, this is
-	 * because as layers are sprite batches, we cannot later change the draw
-	 * location (well not to my knowledge)
-	 * 
-	 * @param pX
-	 *            {@link Float} of the drawing origin point on the X axis
-	 * @param pY
-	 *            {@link Float} of the drawing origin point on the Y axis.
-	 */
-	public void setMapOrigin(final float pX, final float pY) {
-		this.mOriginX = pX;
-		this.mOriginY = pY;
-	}
-
-	/**
-	 * Get the map drawing origin point on the X Axis, this is where the first
-	 * tile is drawn on the X axis <br>
-	 * <b>NOTE</b> Currently only Isometric orientation is supported.
-	 * 
-	 * @return {@link float} of the drawing origin point on the X axis
-	 * @see #setMapOrigin(float, float)
-	 */
-	public float getMapOriginX() {
-		return this.mOriginX;
-	}
-
-	/**
-	 * Get the map drawing origin point on the X Axis, this is where the first
-	 * tile is drawn on the X axis <br>
-	 * <b>NOTE</b> Currently only Isometric orientation is supported.
-	 * 
-	 * @return {@link float} of the drawing origin point on the X axis
-	 * @see #setMapOrigin(float, float)
-	 */
-	public float getMapOriginY() {
-		return this.mOriginY;
-	}
-
+	
 	/**
 	 * Set if we are using a {@link LowMemorySpriteBatchVertexBufferObject} or
 	 * {@link HighPerformanceSpriteBatchVertexBufferObject} for the
