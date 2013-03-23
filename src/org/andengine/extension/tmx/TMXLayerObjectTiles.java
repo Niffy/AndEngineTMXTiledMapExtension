@@ -198,9 +198,9 @@ public class TMXLayerObjectTiles extends TMXLayer {
 			int[] offset_tilesize = {0,0,tileWidth,tileHeight};
 			offset_tilesize = this.mTMXTiledMap.checkTileSetOffsetAndSize(pGlobalTileID);
 			
-			float xRealIsoPos = this.mTMXTiledMap.getMapOriginX() + (column * this.mIsoHalfTileWidth); 
+			float xRealIsoPos = (column * this.mIsoHalfTileWidth); 
 			xRealIsoPos = xRealIsoPos - (row * this.mIsoHalfTileWidth);
-			float yRealIsoPos = this.mTMXTiledMap.getMapOriginY() + (column * this.mIsoHalfTileHeight);
+			float yRealIsoPos = (column * this.mIsoHalfTileHeight);
 			yRealIsoPos = yRealIsoPos + (row * this.mIsoHalfTileHeight);
 			
 			/*
