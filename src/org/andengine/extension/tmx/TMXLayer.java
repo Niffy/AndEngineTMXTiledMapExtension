@@ -34,6 +34,11 @@ import android.opengl.GLES20;
 import android.util.Log;
 
 /**
+ * Since this is Anchor Centre branch, the coordinates are from 
+ * the bottom left increasing up, where as before it was top left increasing down
+ * This mucks up the original calculations. So to fix this problem, 
+ * if the Y is negative make it positive, if positive make negative.
+ * 
  * (c) 2010 Nicolas Gramlich (c) 2011 Zynga Inc.
  * 
  * @author Nicolas Gramlich
@@ -540,9 +545,10 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 			final TMXTiledMap tmxTiledMap = this.mTMXTiledMap;
 
 			float screenX = localCoords[SpriteBatch.VERTEX_INDEX_X] - this.mTMXTiledMap.getTileHeight();
-			float tileColumn = (localCoords[SpriteBatch.VERTEX_INDEX_Y] / tmxTiledMap.getTileHeight())
+			float screenY = localCoords[SpriteBatch.VERTEX_INDEX_Y] < 0 ? Math.abs(pY) : 0 - localCoords[SpriteBatch.VERTEX_INDEX_Y];
+			float tileColumn = (screenY / tmxTiledMap.getTileHeight())
 					+ (screenX / tmxTiledMap.getTileWidth());
-			float tileRow = (localCoords[SpriteBatch.VERTEX_INDEX_Y] / tmxTiledMap.getTileHeight())
+			float tileRow = (screenY / tmxTiledMap.getTileHeight())
 					- (screenX / tmxTiledMap.getTileWidth());
 			if (tileColumn < 0 || tileColumn > this.mTileColumns) {
 				return null;
@@ -585,26 +591,13 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 * Referenced work Christian Knudsen of Laserbrain Studios - "The basics of isometric programming" 
 		 * http://laserbrainstudios.com/2010/08/the-basics-of-isometric-programming/
 		 */
-		/*
-		 * Since we can now have a map origin, we subject the map origin from the screenX and Y coordinates 
-		 */
 		if (this.mAllocateTMXTiles) {
-			float pX = pTouch[0];
-			float pY = pTouch[1];
-			float screenX = pX - this.mTMXTiledMap.getTileHeight();
-			float screenY = pY;
-			float tileColumn = (screenY / this.mTMXTiledMap.getTileHeight())
-					+ (screenX / this.mTMXTiledMap.getTileWidth());
-			float tileRow = (screenY / this.mTMXTiledMap.getTileHeight())
-					- (screenX / this.mTMXTiledMap.getTileWidth());
-
-			if (tileColumn < 0 || tileColumn > this.mTileColumns) {
+			int[] found = this.getRowColAtIsometric(pTouch);
+			if(found != null){
+				return this.mTMXTiles[found[0]][found[1]];
+			}else{
 				return null;
 			}
-			if (tileRow < 0 || tileRow > this.mTileRows) {
-				return null;
-			}
-			return this.mTMXTiles[(int) tileRow][(int) tileColumn];
 		} else {
 			return null;
 		}
@@ -666,7 +659,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 	 */
 	public float[] getIsoTileCentreAt(final int pTileColumn, final int pTileRow) {
 		/*
-		 * Get the first tile with the draw origin as well.
+		 * Get the first tile.
 		 * Get the first tile iso X and Y for the given pTileRow
 		 * Then do the adding to get the required tile in pTileColumn.
 		 */
@@ -680,6 +673,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 
 		isoX = isoX + (pTileColumn * this.mIsoHalfTileWidth);
 		isoY = isoY + (pTileColumn * this.mIsoHalfTileHeight);
+		isoY = 0 - isoY;
 		return new float[] { isoX, isoY };
 	}
 
@@ -698,7 +692,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		float pX = pTouch[0];
 		float pY = pTouch[1];
 		float screenX = pX - this.mTMXTiledMap.getTileHeight();
-		float screenY = pY;
+		float screenY = pY < 0 ? Math.abs(pY) : 0 - pY;
+
 		float tileColumn = (screenY / this.mTMXTiledMap.getTileHeight()) + (screenX / this.mTMXTiledMap.getTileWidth());
 		float tileRow = (screenY / this.mTMXTiledMap.getTileHeight()) - (screenX / this.mTMXTiledMap.getTileWidth());
 
@@ -1102,7 +1097,6 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 * Work out where the "perfect" isometric tile should go.
 		 * Perfect meaning a tile from a tileset of the correct height and 
 		 * width matching the map tile height and width.
-		 * Now with the map origin taken into account.
 		 */
 		float xRealIsoPos = (this.mAddedTilesOnRow * this.mIsoHalfTileWidth);
 		xRealIsoPos = xRealIsoPos - (this.mAddedRows * this.mIsoHalfTileWidth);
@@ -1120,7 +1114,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		}
 		float tileXIso = xOffsetPos;
 		float tileYIso = yOffsetPos;
-
+		
 		if (this.mAllocateTMXTiles) {
 			tmxTile.setTileXIso(xOffsetPos);
 			tmxTile.setTileYIso(yOffsetPos);
@@ -1145,11 +1139,8 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		if (pGlobalTileID != 0) {
 			this.setIndex(this.getSpriteBatchIndex(column, row));
 			// Before we were drawing to the map tile size, not the tileset size
-			this.drawWithoutChecks(tmxTileTextureRegion, tileXIso, tileYIso, offset_tilesize[2], offset_tilesize[3],
-					Color.WHITE_ABGR_PACKED_FLOAT);
-			this.submit(); // TODO Doesn't need to be called here, but should
-							// rather be called in a "init" step, when parsing
-							// the XML is complete.
+			this.drawWithoutChecks(tmxTileTextureRegion, tileXIso, tileYIso, offset_tilesize[2], offset_tilesize[3], Color.WHITE_ABGR_PACKED_FLOAT);
+			
 			// Notify the ITMXTilePropertiesListener if it exists.
 			if (pTMXTilePropertyListener != null) {
 				final TMXProperties<TMXTileProperty> tmxTileProperties = tmxTiledMap
@@ -1391,20 +1382,24 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 */
 		final int tileWidth = this.mTMXTiledMap.getTileWidth();
 		final int tileHeight = this.mTMXTiledMap.getTileHeight();
-		// We also subtract the map origin, other wise culling takes place on
-		// screen
+		/*
+		 *  Since using AnchorCenter camera Y min is bottom left, so add the camera height
+		 */
 		final float cameraMinX = pCamera.getXMin();
-		final float cameraMinY = pCamera.getYMin();
+		final float cameraMinY = pCamera.getYMin() + pCamera.getHeight();
 		final float cameraWidth = pCamera.getWidth();
 		final float cameraHeight = pCamera.getHeight();
-
-		int tileStepY = tileHeight / 2 == 0 ? 1 : tileHeight / 2;
-		int[] rowItr = screenToTileCoords(cameraMinX, cameraMinY);
+		
+		final float pY = cameraMinY < 0 ? Math.abs(cameraMinY) : 0 - cameraMinY;
+		int[] rowItr = this.screenToTileCoords(cameraMinX, pY);
 		rowItr[0]--;
-
-		// Determine area to draw from clipping rectangle
+		
+		/*
+		 *  Determine area to draw from clipping rectangle
+		 *  Row calculation has changed
+		 */
 		int columns = (int) (cameraWidth / tileWidth + 3);
-		int rows = (int) ((cameraHeight + tileHeight * 0) / tileStepY + 4);
+		int rows = (int) (cameraHeight / (tileHeight/2) + 4);
 		// Draw this map layer
 		for (int y = 0; y < rows; y++) {
 			int[] columnItr = { rowItr[0], rowItr[1] };
@@ -1437,9 +1432,7 @@ public class TMXLayer extends SpriteBatch implements TMXConstants {
 		 * Changes being returning an int array rather than Point, 
 		 * I didn't want to keep creating a Point object every time 
 		 */
-		// Translate origin to top-center
-		// Do we need this? Paul Robinson
-		// x -= this.getTileRows() * (this.mIsoHalfTileWidth);
+
 		int mx = (int) (y + (int) (x / this.tileratio));
 		int my = (int) (y - (int) (x / this.tileratio));
 		// be square in normal projection)
