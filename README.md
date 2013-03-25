@@ -1,5 +1,11 @@
 # AndEngineTMXTiledMapExtension
 
+# Now based on GLES2-AnchorCenter,
+Must use  [niffy-AnchorCenter branch](https://github.com/Niffy/AndEngine/tree/niffy-AnchorCenter "niffy-AnchorCenter branch")
+
+##Broken features
+Currently things such as drawing polylines or TMXObjects should be  broken, but should be easy to fix.  This is because AnchorCenter uses a slighty different coordinate system. This might get fixed in the future if I require the use of them.
+
 ##Thanks
 [Tiled](http://www.mapeditor.org/ "Tiled")
 Thanks to Thorbjørn Lindeijer , as parts of the isometric branch use code from the JAVA and Tiled 0.8.0(converted) When this has occured there should be a mention in the source code.  (Any problems regarding this please do contact me and we can fix it!)
